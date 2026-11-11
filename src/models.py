@@ -74,6 +74,7 @@ class RawAnomalySignal(BaseModel):
 
 class ClarificationItem(BaseModel):
     id: str
+    signal_ids: list[str] = Field(default_factory=list)
     category: str
     trigger: str
     evidence: str

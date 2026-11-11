@@ -58,7 +58,7 @@
       "target_value": "1 CHF = 1.2539 USD",
       "extra_tags": [],
       "provenance_source": "assumption",
-      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to CU-6022.",
+      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to Bianchi account CU-6022.",
       "version": 1,
       "active": true
     },

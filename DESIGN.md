@@ -20,27 +20,13 @@ The pipeline maps Beaconcrest Advisors' Notion CRM (`Clients*.md`, `Meetings*.md
    - **Rule 6 (Fields with no first-class home)**:
      - *Preserved & normalized in `source_tags`*: `Segment` (`High Net Worth -> segment:HNW`), `Risk Profile` (`3 - Moderate -> risk_profile:Moderate`), `Fee Schedule` (`tier 1 -> fee_schedule:Tier 1`), `Client Since` (`client_since:YYYY-MM-DD`), `Referred By`, `Tags` (`VIP`, `ESG`, `Do Not Contact`), `Legacy -> lineage:harborline`, and `Service Rep` (`service_rep:<name>` / `service_rep:A. Novak (departed)`).
      - *Dropped with logged rationale*: `custodian_positions.Cost_Basis` (per Dana in Slack: tax-only), `clients.Website` (synthetic URLs, irrelevant to wealth management canonical model), and `advisor_roster.office` (not in canonical `advisor` schema).
-   - **Consistency with Clarifications**: Proposed defaults match canonical output exactly:
-     - Omar Farouk defaulted to `INACTIVE` with `pending:round2_deceased_status`.
-     - Kenji Nakamura's IRA held in unassigned onboarding queue pending family confirmation (`pending:round2_householding`).
-     - Stale active accounts (Ashford `CU-6024`, Delgado `CU-5004`) retained with historical dates tagged `pending:round2_stale_valuation`.
-     - Unmatched custodian accounts (`CU-5010`, `CU-6025`) and Redwood Capital interaction held in onboarding/prospect queues without creating orphan records.
+   - **Consistency with Clarifications**: While assembling, every exception that needs a human decision is recorded as a `RawAnomalySignal` (type, affected entities, observed facts, source notes, and the `pipeline_action` actually applied, e.g. household held out, status set `INACTIVE`, stale balance retained and tagged `pending:round2_stale_valuation`). Nothing about specific clients is hardcoded: signals are detected generically (no advisor, deceased tag vs active status, account with no CRM match, valuation older than the feed's latest date, non-USD conversion not settled in Slack, meeting with no household, conflicting spouse attributes, non-percentage fee labels).
    - **Post-Mapping Validator**: Asserts all 7 canonical invariants hold on `outputs/canonical_output.json`. Spouses maintain their individual `risk_profile` and `fee_schedule` tags on their respective `Client` records without inventing artificial household-level conflicts.
 
 4. **Stage 4 — Round 2 Clarification Synthesizer & Post-Synthesis Fact-Check Validator (`main.py`, `src/assembler.py`)**:
-   - Synthesizes an executive, 8-decision operational memorandum for Dana Ruiz in `outputs/clarifications_round2.md`.
-   - Adheres strictly to wealth management business language (zero database/engineering jargon; no email roleplay or conversational filler).
-   - Formulates the 8 operational decisions with verified ground-truth facts:
-     1. Primary Advisor assignments for Delgado, Whitfield, Petit, Vandermeer (Dana: *"Don't guess. Flag those to me and I'll tell you the right advisor"*).
-     2. Stale account valuations for Delgado (`CU-5004` at Schwab, $1.24M, 2024-12-31) and Ashford (`CU-6024` at Fidelity, $1.45M, 2024-09-30).
-     3. Deceased primary contact vs active status for Omar Farouk (`CU-6035` at Schwab, $1.66M, 2025-06-30).
-     4. Holding structure for Kenji Nakamura IRA (`CU-5011` at Fidelity, $210k) vs Nakamura Holdings LLC (`CU-5006` at Fidelity, $8.9M).
-     5. Unmatched custodian accounts for Carlos Vasquez (`CU-5010` at Schwab, $980k) and Priyanka Mehta (`CU-6025` at Schwab, $670k).
-     6. Orphan prospect interaction for Redwood Capital introductory meeting on June 8, 2025 (`"Referred lead — not in the CRM yet"`).
-     7. Swiss Franc (CHF) exchange rate confirmation for Francesca Bianchi (`CU-6022` at Pictet, 2.1M CHF at 1.2539 USD/CHF).
-     8. Conflicting spouse profile attributes (Chen, Abramson, Sullivan, Thompson) and undefined fee tiers (Tier 1, Tier 2, See LOE).
-   - **Automated Post-Synthesis Fact-Check Validator (`verify_clarifications_fact_check`)**:
-     Extracts every account ID, holder, custodian, amount, and date from the generated memorandum and validates them against `custodian_positions.xlsx`. Rigorously asserts zero hallucinated phrases (such as fabricated CPAs or invented "transition spreadsheets"), verifies option-to-default alignment, and fails if any anomaly or discrepancy is detected.
+   - The LLM receives the Round 1 Slack thread plus the detected signals and writes one decision item per distinct issue (related signals may be grouped; the count is data-driven, not fixed). Each item lists lettered candidate options, cites the `signal_ids` it covers, and its proposed default must be the option matching the `pipeline_action` already applied, so the memo never disagrees with `canonical_output.json`.
+   - Adheres to wealth management business language (no database/engineering jargon; no email roleplay).
+   - **Automated Post-Synthesis Fact-Check Validator (`verify_clarifications_fact_check`)**: fully data-driven. It asserts every signal is covered by an item and every cited signal exists; each signalled account ID/entity appears in the memo; every `CU-` ID exists in `custodian_positions.xlsx` and is never paired with a wrong custodian; dollar amounts beside an account ID match the feed (or the converted value); and each default cites an option letter that exists. On failure the synthesis is retried once with the error appended, then the run fails.
 
 ---
 

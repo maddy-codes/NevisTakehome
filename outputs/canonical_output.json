@@ -133,7 +133,7 @@
           "source": "slack_knowledge",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Yusuf Al-Rashid is an ACTIVE CRM client owned by Marcus Webb (ADV-002). The linked EUR account is converted at the mandated 2025-06-30 rate: EUR 1,875,000 × 1.1720 = USD 2,197,500. The note's currency detail is preserved through the FX conversion lineage."
+          "evidence": "CRM identifies Yusuf Al-Rashid as Active with Marcus Webb and household Al-Rashid. The note and custodian record identify the EUR account; Dana explicitly established USD reporting and quarter-end conversion for Al-Rashid."
         }
       ]
     },
@@ -203,7 +203,7 @@
       "as_of_date": "2025-06-30",
       "aum_usd": 2633190.0,
       "source_tags": [
-        "lineage:swiss_custodian",
+        "lineage:pictet",
         "segment:HNW"
       ],
       "provenance": [
@@ -216,8 +216,8 @@
         {
           "source": "assumption",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Francesca Bianchi. CU-6022 is a 2,100,000 CHF individual account at Pictet; applied the mandated 2025-06-30 rate of 1 CHF = 1.2539 USD, yielding 2,633,190.00 USD. Advisor Sofia Marchetti maps to ADV-005."
+          "confidence": 1.0,
+          "evidence": "Francesca Bianchi exactly matches the CRM household and CU-6022. The CHF balance is converted using the mandated 2025-06-30 rate: 2,100,000 CHF × 1.2539 = 2,633,190 USD. Advisor Sofia Marchetti maps to ADV-005; the account is Individual and the client is Active."
         }
       ]
     },
@@ -358,8 +358,8 @@
         {
           "source": "assumption",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.97,
-          "evidence": "Exact CRM and custodian match for Omar Farouk with advisor Sofia Marchetti (ADV-005) and a 1,660,000 USD individual account. ACTIVE status contradicts the Deceased tag; INACTIVE is proposed conservatively pending Dana confirmation."
+          "confidence": 0.99,
+          "evidence": "Omar Farouk has an explicit advisor, Sofia Marchetti (ADV-005), and CU-6035 is $1,660,000 USD. However, Active status conflicts with the Deceased tag. INACTIVE is the conservative default, but Dana must confirm the authoritative status."
         }
       ]
     },
@@ -583,7 +583,6 @@
       "as_of_date": "2025-06-30",
       "aum_usd": 530000.0,
       "source_tags": [
-        "lineage:referred_by:Emily Harrington",
         "segment:Mass Affluent"
       ],
       "provenance": [
@@ -594,10 +593,10 @@
           "evidence": "Clients page 99068c0d (Sophie Laurent)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Sophie Laurent with advisor James Okafor (ADV-004), ACTIVE status, and a 530,000 USD individual account. The referral note and Referred By value are preserved as business lineage."
+          "confidence": 1.0,
+          "evidence": "Sophie Laurent exactly matches the CRM household and CU-6039. James Okafor maps to ADV-004; the account is Individual, Active, and worth $530,000 USD. The referral detail is preserved as a source tag."
         }
       ]
     },
@@ -943,10 +942,10 @@
           "evidence": "Clients page 32e22ca3 (Mei Lin Tan)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM record for Mei Lin Tan has advisor Sofia Marchetti (ADV-005), ACTIVE status, and exact custodian match CU-6027 for 495,000 USD. The email-only preference is preserved as a source tag. Unrelated records in the broad context were not linked."
+          "confidence": 1.0,
+          "evidence": "Mei Lin Tan exactly matches the CRM household and CU-6027. Sofia Marchetti maps to ADV-005; the account is Individual, Active, and worth $495,000 USD. The email-only preference is preserved as a business-meaningful source tag. Other records in the broad context are unrelated."
         }
       ]
     },
@@ -1008,10 +1007,10 @@
           "evidence": "Clients page f91a0e32 (Gerald Voss)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM record for Gerald Voss has advisor Grace Bennett (ADV-007), ACTIVE status, and no matching custodian account. The Held Away tag is preserved as a meaningful source attribute; AUM is null because no known account exists."
+          "confidence": 1.0,
+          "evidence": "Gerald Voss has an explicit current advisor, Grace Bennett (ADV-007), and an exact CRM household match. The Held Away tag is business-meaningful and is preserved. The unrelated Fitzgerald context does not affect this record; CU-6023 is not present for Gerald, so no AUM is inferred."
         }
       ]
     },
@@ -1053,10 +1052,10 @@
           "evidence": "Clients page b669d445 (Wei Zhang)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Wei Zhang with advisor James Okafor (ADV-004), ACTIVE status, and a 1,930,000 USD individual account. Do Not Contact and quarterly review information are preserved as source tags."
+          "confidence": 1.0,
+          "evidence": "Wei Zhang exactly matches the CRM household and CU-6033. James Okafor maps to ADV-004; the account is Individual, Active, and worth $1,930,000 USD. The Do Not Contact restriction and quarterly review cadence are preserved as business-meaningful tags."
         }
       ]
     }
@@ -1111,8 +1110,7 @@
       "last_name": "Al-Rashid",
       "role": "PRIMARY",
       "source_tags": [
-        "source_currency:EUR",
-        "fx_rate:2025-06-30:1.1720",
+        "currency:EUR",
         "segment:HNW",
         "risk_profile:Conservative",
         "fee_schedule:0.85%",
@@ -1129,7 +1127,7 @@
           "source": "slack_knowledge",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Yusuf Al-Rashid is an ACTIVE CRM client owned by Marcus Webb (ADV-002). The linked EUR account is converted at the mandated 2025-06-30 rate: EUR 1,875,000 × 1.1720 = USD 2,197,500. The note's currency detail is preserved through the FX conversion lineage."
+          "evidence": "CRM identifies Yusuf Al-Rashid as Active with Marcus Webb and household Al-Rashid. The note and custodian record identify the EUR account; Dana explicitly established USD reporting and quarter-end conversion for Al-Rashid."
         }
       ]
     },
@@ -1201,7 +1199,9 @@
       "last_name": "Bianchi",
       "role": "PRIMARY",
       "source_tags": [
-        "lineage:swiss_custodian",
+        "currency:CHF",
+        "fx_rate:1.2539",
+        "lineage:pictet",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.10%",
@@ -1217,8 +1217,8 @@
         {
           "source": "assumption",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Francesca Bianchi. CU-6022 is a 2,100,000 CHF individual account at Pictet; applied the mandated 2025-06-30 rate of 1 CHF = 1.2539 USD, yielding 2,633,190.00 USD. Advisor Sofia Marchetti maps to ADV-005."
+          "confidence": 1.0,
+          "evidence": "Francesca Bianchi exactly matches the CRM household and CU-6022. The CHF balance is converted using the mandated 2025-06-30 rate: 2,100,000 CHF × 1.2539 = 2,633,190 USD. Advisor Sofia Marchetti maps to ADV-005; the account is Individual and the client is Active."
         }
       ]
     },
@@ -1374,6 +1374,7 @@
       "last_name": "Farouk",
       "role": "PRIMARY",
       "source_tags": [
+        "critical_tag:Deceased",
         "segment:HNW",
         "risk_profile:Moderate",
         "fee_schedule:Tier 1",
@@ -1391,8 +1392,8 @@
         {
           "source": "assumption",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.97,
-          "evidence": "Exact CRM and custodian match for Omar Farouk with advisor Sofia Marchetti (ADV-005) and a 1,660,000 USD individual account. ACTIVE status contradicts the Deceased tag; INACTIVE is proposed conservatively pending Dana confirmation."
+          "confidence": 0.99,
+          "evidence": "Omar Farouk has an explicit advisor, Sofia Marchetti (ADV-005), and CU-6035 is $1,660,000 USD. However, Active status conflicts with the Deceased tag. INACTIVE is the conservative default, but Dana must confirm the authoritative status."
         }
       ]
     },
@@ -1639,7 +1640,7 @@
       "last_name": "Laurent",
       "role": "PRIMARY",
       "source_tags": [
-        "lineage:referred_by:Emily Harrington",
+        "referred_by:Emily Harrington",
         "segment:Mass Affluent",
         "risk_profile:Aggressive",
         "fee_schedule:Tier 1",
@@ -1654,10 +1655,10 @@
           "evidence": "Clients page 99068c0d (Sophie Laurent)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Sophie Laurent with advisor James Okafor (ADV-004), ACTIVE status, and a 530,000 USD individual account. The referral note and Referred By value are preserved as business lineage."
+          "confidence": 1.0,
+          "evidence": "Sophie Laurent exactly matches the CRM household and CU-6039. James Okafor maps to ADV-004; the account is Individual, Active, and worth $530,000 USD. The referral detail is preserved as a source tag."
         }
       ]
     },
@@ -2059,10 +2060,10 @@
           "evidence": "Clients page 32e22ca3 (Mei Lin Tan)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM record for Mei Lin Tan has advisor Sofia Marchetti (ADV-005), ACTIVE status, and exact custodian match CU-6027 for 495,000 USD. The email-only preference is preserved as a source tag. Unrelated records in the broad context were not linked."
+          "confidence": 1.0,
+          "evidence": "Mei Lin Tan exactly matches the CRM household and CU-6027. Sofia Marchetti maps to ADV-005; the account is Individual, Active, and worth $495,000 USD. The email-only preference is preserved as a business-meaningful source tag. Other records in the broad context are unrelated."
         }
       ]
     },
@@ -2149,10 +2150,10 @@
           "evidence": "Clients page f91a0e32 (Gerald Voss)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM record for Gerald Voss has advisor Grace Bennett (ADV-007), ACTIVE status, and no matching custodian account. The Held Away tag is preserved as a meaningful source attribute; AUM is null because no known account exists."
+          "confidence": 1.0,
+          "evidence": "Gerald Voss has an explicit current advisor, Grace Bennett (ADV-007), and an exact CRM household match. The Held Away tag is business-meaningful and is preserved. The unrelated Fitzgerald context does not affect this record; CU-6023 is not present for Gerald, so no AUM is inferred."
         }
       ]
     },
@@ -2200,10 +2201,10 @@
           "evidence": "Clients page b669d445 (Wei Zhang)"
         },
         {
-          "source": "deterministic",
+          "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Exact CRM and custodian match for Wei Zhang with advisor James Okafor (ADV-004), ACTIVE status, and a 1,930,000 USD individual account. Do Not Contact and quarterly review information are preserved as source tags."
+          "confidence": 1.0,
+          "evidence": "Wei Zhang exactly matches the CRM household and CU-6033. James Okafor maps to ADV-004; the account is Individual, Active, and worth $1,930,000 USD. The Do Not Contact restriction and quarterly review cadence are preserved as business-meaningful tags."
         }
       ]
     }
@@ -2320,7 +2321,7 @@
     {
       "account_id": "CU-5009",
       "household_id": "hh_thompson",
-      "account_type": "JOINT",
+      "account_type": "OTHER",
       "market_value_usd": 12400.0,
       "currency_original": "USD",
       "as_of_date": "2023-09-30",
@@ -2336,13 +2337,13 @@
           "source": "slack_knowledge",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Thompson Joint maps to the Thompson household through Bill and Sarah Thompson's joint-account CRM note. Dana confirmed the Thompson household is inactive; the stale 2023 market value is the only supplied value and remains USD 12,400."
+          "evidence": "Thompson Joint maps to the Thompson household, whose CRM records are Bill and Sarah Thompson. Dana confirmed the household is inactive; the account's stale 2023-09-30 market value is retained as the available value and cost basis is ignored."
         },
         {
           "source": "assumption",
           "rule_or_model": "stale_valuation_policy",
           "confidence": 0.85,
-          "evidence": "Valuation is dated 2023-09-30 (older than 2025-06-30 quarter-end). Retained under proposed default Option A tagged pending:round2_stale_valuation pending refreshed statements."
+          "evidence": "Valuation is dated 2023-09-30 (older than the 2025-06-30 feed cutoff). Retained at last reported balance and tagged pending:round2_stale_valuation pending refreshed statements."
         }
       ]
     },
@@ -2728,13 +2729,13 @@
           "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Oliver Ashford exactly matches the Ashford CRM household, which is ACTIVE and owned by Grace Bennett. The supplied USD market value is used despite the stale as-of date."
+          "evidence": "CU-6024 exactly matches Oliver Ashford in the Ashford household with Grace Bennett as advisor. The stale as-of date does not prevent mapping; market value is retained as supplied in USD."
         },
         {
           "source": "assumption",
           "rule_or_model": "stale_valuation_policy",
           "confidence": 0.85,
-          "evidence": "Valuation is dated 2024-09-30 (older than 2025-06-30 quarter-end). Retained under proposed default Option A tagged pending:round2_stale_valuation pending refreshed statements."
+          "evidence": "Valuation is dated 2024-09-30 (older than the 2025-06-30 feed cutoff). Retained at last reported balance and tagged pending:round2_stale_valuation pending refreshed statements."
         }
       ]
     },
@@ -3126,8 +3127,8 @@
         {
           "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.96,
-          "evidence": "The interaction client Nora Lindholm exactly matches the ACTIVE Lindholm Household, whose primary advisor is Priya Raman (ADV-001). The missing attendee can be represented by the household's primary advisor for canonical linkage; the interaction is an ONBOARDING event."
+          "confidence": 0.99,
+          "evidence": "Nora Lindholm matches the Lindholm Household, whose primary advisor is Priya Raman (ADV-001). The interaction is an existing onboarding meeting; the missing attendee does not prevent rollup to the existing household."
         }
       ]
     },
@@ -3293,7 +3294,7 @@
           "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "The abbreviated interaction client 'Thompson' matches the existing Bill Thompson record and Thompson household. The household is INACTIVE per Dana's confirmation, its primary advisor is James Okafor, and the interaction is a REVIEW event. No new household is created."
+          "evidence": "The meeting client alias Thompson resolves to Bill Thompson in the existing Thompson household. The household is inactive per Dana's explicit instruction, and James Okafor is its advisor."
         }
       ]
     }

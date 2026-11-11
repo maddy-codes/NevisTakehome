@@ -27,35 +27,23 @@ clarification_synthesizer = Agent(
     name="nevis_round2_clarification_writer",
     defer_model_check=True,
     instructions=(
-        "You are a Forward Deployed Engineer generating the Round 2 onboarding clarifications memo for RIA operations (Dana Ruiz).\n\n"
-        "Guidelines:\n"
-        "- Dana Ruiz is Head of Operations at an RIA, not a software engineer. NEVER use internal database or engineering jargon: "
-        "do NOT mention 'canonical data model', 'canonical output', 'canonical entities', 'minting households', or 'Rule 4 violations'.\n"
-        "- Speak strictly in wealth management and RIA operations terms: client accounts, billing/AUM totals, advisor dashboards, "
-        "household groupings, custodian statement feeds, and estate transition.\n"
-        "- Do NOT re-ask anything Dana settled in Round 1 (do NOT ask what Legacy means, do NOT ask whether Service Rep is an advisor, "
-        "do NOT ask whether to use Market Value vs Cost Basis, do NOT ask whether to convert foreign currency to USD, do NOT ask about Dmitri Petrov, "
-        "and do NOT ask about Thompson, whom Dana already instructed to mark inactive and exclude from active AUM).\n"
-        "- Ground truth factual integrity is paramount. DO NOT hallucinate or invent details, third parties, or spreadsheets. "
-        "Specifically: do NOT mention any CPA (the meeting note says 'Family still deciding whether Kenji\'s IRA sits under the LLC or on its own'), "
-        "and do NOT invent a 'transition spreadsheet'.\n"
-        "- Use exact account IDs, custodians, and balances from the input facts: "
-        "Omar Farouk is CU-6035 at Schwab ($1,660,000 USD); "
-        "Kenji Nakamura accounts CU-5006 ($8,900,000) and CU-5011 ($210,000) are at Fidelity, not Schwab; "
-        "Carlos Vasquez CU-5010 ($980,000) and Priyanka Mehta CU-6025 ($670,000) are at Schwab; "
-        "Maria Delgado CU-5004 ($1,240,000) is at Schwab; Oliver Ashford CU-6024 ($1,450,000) is at Fidelity; "
-        "Francesca Bianchi CU-6022 (2,100,000 CHF) is at Pictet, converted at 1.2539 USD/CHF.\n"
-        "- Retain all 8 operational items provided in the input, preserving their rich evidence (names, dates, balances, verbatim quotes):\n"
-        "  1. Primary Advisor Assignments (Maria Delgado, George Whitfield, Louis Petit, Joris Vandermeer)\n"
-        "  2. Stale Account Valuations (Maria Delgado CU-5004, Oliver Ashford CU-6024)\n"
-        "  3. Status & Active AUM Treatment (Omar Farouk CU-6035 at Schwab)\n"
-        "  4. Household Grouping (Kenji Nakamura IRA CU-5011 and Nakamura Holdings LLC CU-5006 at Fidelity)\n"
-        "  5. Custodian Accounts Without Client Profiles (Carlos Vasquez CU-5010, Priyanka Mehta CU-6025 at Schwab)\n"
-        "  6. Prospect Interaction Without CRM Profile (Redwood Capital intro call on June 8, 2025)\n"
-        "  7. Swiss Franc (CHF) FX Conversion Confirmation (Francesca Bianchi CU-6022 at Pictet, 1.2539 USD/CHF)\n"
-        "  8. Spouse Attribute Conflicts & Undefined Fee Schedule Tiers (Chen, Abramson, Sullivan, Thompson + Tier 1, Tier 2, See LOE)\n"
-        "- Do NOT use email roleplay (no 'Alex', no 'Hi Dana', no 'Best regards'). Output an executive memo.\n"
-        "- Ensure candidate option letters (Option A, Option B, Option C) are clearly identified and that the proposed default explicitly cites the chosen option letter.\n"
+        "You write the Round 2 onboarding clarifications memo for RIA operations leadership (the Head of Operations).\n\n"
+        "Input: (1) the Round 1 Slack thread (already settled), and (2) a JSON list of anomaly signals detected from the source data. "
+        "Each signal has a signal_id, anomaly_type, affected_entities, facts, source_evidence and the pipeline_action already taken.\n\n"
+        "Rules:\n"
+        "- The reader is an operations executive, not an engineer. Use wealth-management language only (client accounts, billing/AUM, advisor dashboards, household groupings, custodian feeds). "
+        "No database, schema or 'canonical model' jargon.\n"
+        "- Write one decision item per distinct decision. You may group signals of the same type into one item. "
+        "Every signal_id must appear in exactly one item's `signal_ids`; do not drop signals and do not invent new ones.\n"
+        "- Use ONLY facts present in the signals and the Slack thread. Copy account IDs, custodians, dates and dollar amounts exactly. "
+        "Never invent third parties, documents, people or policies. Quote source_evidence verbatim when it helps.\n"
+        "- Format money as $1,240,000 (or 2,100,000 CHF), never as 1240000.0, and never expose internal field names such as converted_usd or pipeline_action.\n"
+        "- Do not re-ask anything the Slack thread already settled.\n"
+        "- Honour stated guidance in the Slack thread (for example, if the ops lead said not to guess a value, never propose a guessed value).\n"
+        "- Give 2-3 candidate options labelled 'Option A', 'Option B', 'Option C'. "
+        "The proposed default must be the option that matches the signal's pipeline_action (what was already applied in the output), "
+        "must cite its option letter, and must be the conservative choice that does not fabricate data.\n"
+        "- Output an executive memo: no email greeting, sign-off or conversational filler.\n"
     ),
 )
 
@@ -142,7 +130,7 @@ def run_pipeline(
         )
 
         # Stage 3: Assemble Canonical Output & Post-Mapping Validation
-        canonical_output, raw_clarifications = build_canonical_output(
+        canonical_output, raw_signals = build_canonical_output(
             mapping_result=mapping_result,
             resolutions=resolutions,
             kb=kb,
@@ -159,10 +147,10 @@ def run_pipeline(
         cache_file = Path(cache_path)
         cache_data = json.loads(cache_file.read_text(encoding="utf-8")) if cache_file.exists() else {}
 
-        with logfire.span("stage_4.synthesize_round2_clarifications", raw_count=len(raw_clarifications), mode="live_llm" if has_api_key else "cached_replay"):
+        with logfire.span("stage_4.synthesize_round2_clarifications", raw_count=len(raw_signals), mode="live_llm" if has_api_key else "cached_replay"):
             print("\n" + "=" * 80)
             print("[Stage 4: Synthesize Round 2 Clarifications]")
-            print(f"  • Programmatically detected {len(raw_clarifications)} raw exception signals from mapping & validator")
+            print(f"  • Programmatically detected {len(raw_signals)} anomaly signals from mapping & validator")
             if not has_api_key and cache_data.get("stage_4_clarifications"):
                 print("  • Offline mode: Replaying cached Stage 4 clarifications from 'reference/llm_cache.json'")
                 logfire.info("Replaying cached Stage 4 clarifications from llm_cache.json (offline / dry-run)")
@@ -171,15 +159,15 @@ def run_pipeline(
                     synth_output.markdown_message_to_dana,
                     synth_output.items,
                 )
-                verify_clarifications_fact_check(formatted_memo, sources_dir=sources_dir)
+                verify_clarifications_fact_check(formatted_memo, synth_output.items, raw_signals, sources_dir=sources_dir)
             else:
                 print("  • Synthesizing executive questions using PydanticAI (openai:gpt-5.6-luna)... ", end="", flush=True)
                 slack_text = (Path(sources_dir) / "ops_slack_thread.md").read_text(encoding="utf-8")
                 prompt = (
                     f"### Round 1 Slack Thread Context (Already Settled — Do Not Re-Ask)\n{slack_text}\n\n"
-                    f"### 8 Structured Operational Clarification Items with Verified Facts\n"
-                    f"You must refine and output each of the following 8 items without changing any account numbers, custodians, or dollar amounts, and without hallucinating unmentioned third parties (no CPAs, no transition spreadsheets):\n"
-                    + json.dumps([c.model_dump() for c in raw_clarifications], indent=2)
+                    f"### Anomaly Signals Detected From Source Data ({len(raw_signals)})\n"
+                    f"Cover every signal_id. Do not change any account number, custodian or amount.\n"
+                    + json.dumps([sg.model_dump() for sg in raw_signals], indent=2, default=str)
                 )
 
                 max_attempts = 2
@@ -191,7 +179,7 @@ def run_pipeline(
                         synth_output.items,
                     )
                     try:
-                        verify_clarifications_fact_check(formatted_memo, sources_dir=sources_dir)
+                        verify_clarifications_fact_check(formatted_memo, synth_output.items, raw_signals, sources_dir=sources_dir)
                         break
                     except AssertionError as err:
                         if attempt == max_attempts - 1:
@@ -200,7 +188,7 @@ def run_pipeline(
                         prompt += f"\n\nERROR IN PREVIOUS ATTEMPT: {err}. Please correct this immediately."
 
                 print("Done.")
-                print("  ✓ Rigorous post-synthesis fact-check passed: All 8 items, account IDs, holders, and custodians verified against ground truth.")
+                print("  ✓ Rigorous post-synthesis fact-check passed: every signal covered; account IDs, custodians and amounts verified against the custodian feed.")
                 cache_data["stage_4_clarifications"] = synth_output.model_dump()
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(json.dumps(cache_data, indent=2), encoding="utf-8")

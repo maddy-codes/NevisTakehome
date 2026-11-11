@@ -19,6 +19,7 @@ from src.models import (
     Interaction,
     InteractionType,
     Provenance,
+    RawAnomalySignal,
 )
 from src.resolver import CaseResolution
 
@@ -50,14 +51,46 @@ def normalize_household_name(raw_hh: str | None, fallback_last_name: str) -> str
     return f"{base} Household"
 
 
+_NAME_STOPWORDS = {"llc", "inc", "trust", "revocable", "household", "holdings", "the", "and", "joint"}
+
+
+def _name_tokens(text: str | None) -> set[str]:
+    return {t for t in re.findall(r"[a-z]{3,}", (text or "").lower()) if t not in _NAME_STOPWORDS}
+
+
+def _is_standard_fee(value: str) -> bool:
+    return bool(re.match(r"^\d+(\.\d+)?\s*%$", value.strip()))
+
+
 def build_canonical_output(
     mapping_result: DeterministicMappingResult,
     resolutions: list[CaseResolution],
     kb: KnowledgeBase,
-) -> tuple[CanonicalOutput, list[ClarificationItem]]:
+) -> tuple[CanonicalOutput, list[RawAnomalySignal]]:
+    """Assemble canonical entities and return the data-derived anomaly signals that need a human decision.
+
+    Signals carry only facts observed in the sources plus the action this pipeline actually took.
+    Options and recommended defaults are written downstream (Stage 4), never hardcoded here.
+    """
     with logfire.span("stage_3.assemble_and_validate") as span:
         res_by_id: dict[str, CaseResolution] = {r.case_id: r for r in resolutions}
-        clarifications: list[ClarificationItem] = []
+        signals: list[RawAnomalySignal] = []
+        held_hh_signals: dict[str, RawAnomalySignal] = {}
+        deceased_signals: dict[str, RawAnomalySignal] = {}
+
+        # Quarter-end cutoff = latest valuation date present in the custodian feed.
+        valuation_cutoff = max(str(a["As_Of_Date"]) for a in mapping_result.all_accounts_raw)
+
+        def related_notes(holder_or_client: str) -> list[str]:
+            toks = _name_tokens(holder_or_client)
+            notes: list[str] = []
+            for c in mapping_result.all_clients_raw:
+                if c.get("Notes") and toks & _name_tokens(c["Name"]):
+                    notes.append(f"CRM client note ({c['Name']}): {c['Notes']}")
+            for m in mapping_result.all_interactions_raw:
+                if m.get("Notes") and toks & _name_tokens(m.get("Client")):
+                    notes.append(f"Meeting note ({m.get('Client')}): {m['Notes']}")
+            return notes
 
         advisor_by_name = {a.full_name: a.advisor_id for a in mapping_result.advisors}
         advisor_ids = {a.advisor_id for a in mapping_result.advisors}
@@ -239,6 +272,29 @@ def build_canonical_output(
             if not primary_adv_id:
                 logfire.warn("Holding household out of canonical output due to missing primary_advisor_id", hh_id=hh_id, hh_name=hh_name)
                 print(f"  [Holdout: Household] '{hh_name}' ({hh_id}) -> Rule 1: No primary advisor assigned (held pending Dana's confirmation)")
+                held_hh_signals[hh_id] = RawAnomalySignal(
+                    signal_id=f"sig_missing_advisor_{hh_id}",
+                    anomaly_type="missing_primary_advisor",
+                    affected_entities=[hh_name],
+                    facts={
+                        "household": hh_name,
+                        "clients": [
+                            {
+                                "name": m["raw"]["Name"],
+                                "advisor_field": m["raw"].get("Advisor"),
+                                "service_rep_field": m["raw"].get("Service Rep"),
+                            }
+                            for m in members
+                        ],
+                        "held_accounts": [],
+                        "held_interactions": [],
+                        "pipeline_action": (
+                            "Household, its clients, accounts and meetings are held out of the canonical output "
+                            "until a primary advisor is confirmed; no advisor was guessed."
+                        ),
+                    },
+                    source_evidence=[f"CRM client note ({m['raw']['Name']}): {m['raw']['Notes']}" for m in members if m["raw"].get("Notes")],
+                )
                 continue
 
             valid_hh_ids.add(hh_id)
@@ -255,6 +311,20 @@ def build_canonical_output(
                 hh_status = "INACTIVE"
                 if "pending:round2_deceased_status" not in hh_tags:
                     hh_tags.append("pending:round2_deceased_status")
+                deceased_signals[hh_id] = RawAnomalySignal(
+                    signal_id=f"sig_deceased_status_{hh_id}",
+                    anomaly_type="deceased_contact_status_conflict",
+                    affected_entities=[hh_name],
+                    facts={
+                        "household": hh_name,
+                        "clients": [
+                            {"name": m["raw"]["Name"], "crm_status": m["raw"].get("Status"), "tags": m["raw"].get("Tags")}
+                            for m in members
+                        ],
+                        "accounts": [],
+                        "pipeline_action": "Household status set to INACTIVE and tagged pending:round2_deceased_status.",
+                    },
+                )
 
             households_out.append(
                 Household(
@@ -310,6 +380,30 @@ def build_canonical_output(
                 reason = "Orphan custodian account (no matching CRM client; Rule 4)" if not hh_id else f"Household '{hh_id}' held out (unassigned advisor; Rule 1)"
                 logfire.warn("Skipping orphan or unassigned-advisor account from canonical output", account_id=acct_num, holder=holder, resolved_hh_id=hh_id)
                 print(f"  [Holdout: Account] {acct_num} ('{holder}', ${float(raw_a['Market_Value']):,.0f}) -> {reason}")
+                acct_facts = {
+                    "account_id": acct_num,
+                    "holder": holder,
+                    "custodian": raw_a["Custodian"],
+                    "account_type": raw_a["Account_Type"],
+                    "market_value": float(raw_a["Market_Value"]),
+                    "currency": raw_a["Currency"],
+                    "as_of_date": str(raw_a["As_Of_Date"]),
+                }
+                if hh_id and hh_id in held_hh_signals:
+                    held_hh_signals[hh_id].facts["held_accounts"].append(acct_facts)
+                else:
+                    signals.append(
+                        RawAnomalySignal(
+                            signal_id=f"sig_unmatched_account_{acct_num}",
+                            anomaly_type="unmatched_custodian_account",
+                            affected_entities=[acct_num, holder],
+                            facts={
+                                **acct_facts,
+                                "pipeline_action": "Account held out of the canonical output and not attached to any household; no household was created.",
+                            },
+                            source_evidence=related_notes(holder),
+                        )
+                    )
                 continue
 
             curr = raw_a["Currency"]
@@ -356,13 +450,9 @@ def build_canonical_output(
                 )
             ]
             if res:
-                prov_src = res.provenance_source
-                # G. Whitfield was resolved by LLM, not Slack
-                if "Whitfield" in holder:
-                    prov_src = "llm"
                 prov.append(
                     Provenance(
-                        source=prov_src,
+                        source=res.provenance_source,
                         rule_or_model="nevis_ambiguity_resolver",
                         confidence=res.confidence,
                         evidence=res.evidence,
@@ -370,36 +460,62 @@ def build_canonical_output(
                 )
             if fx_prov:
                 prov.append(fx_prov)
+                if fx_prov.source == "assumption":
+                    # Rate not settled in Round 1 Slack -> needs confirmation
+                    signals.append(
+                        RawAnomalySignal(
+                            signal_id=f"sig_fx_{acct_num}",
+                            anomaly_type="unconfirmed_fx_conversion",
+                            affected_entities=[acct_num, holder],
+                            facts={
+                                "account_id": acct_num,
+                                "holder": holder,
+                                "custodian": raw_a["Custodian"],
+                                "original_amount": raw_mv,
+                                "original_currency": curr,
+                                "converted_usd": mv_usd,
+                                "rate_usd_per_unit": CHF_USD_RATE if curr == "CHF" else EUR_USD_RATE,
+                                "rate_source": "ECB reference rate, 2025-06-30 quarter-end",
+                                "pipeline_action": "Converted to USD at the stated rate; provenance recorded as an assumption pending confirmation.",
+                            },
+                        )
+                    )
 
-            # If account is stale (older than 2025-06-30), record assumption provenance
+            # Stale valuation: older than the latest valuation date present in the custodian feed
             as_of_str = str(raw_a["As_Of_Date"])
-            if as_of_str != "2025-06-30":
+            if as_of_str < valuation_cutoff:
                 prov.append(
                     Provenance(
                         source="assumption",
                         rule_or_model="stale_valuation_policy",
                         confidence=0.85,
                         evidence=(
-                            f"Valuation is dated {as_of_str} (older than 2025-06-30 quarter-end). "
-                            "Retained under proposed default Option A tagged pending:round2_stale_valuation pending refreshed statements."
+                            f"Valuation is dated {as_of_str} (older than the {valuation_cutoff} feed cutoff). "
+                            "Retained at last reported balance and tagged pending:round2_stale_valuation pending refreshed statements."
                         ),
                     )
                 )
                 if hh_id in hh_by_id and "pending:round2_stale_valuation" not in hh_by_id[hh_id].source_tags:
                     hh_by_id[hh_id].source_tags.append("pending:round2_stale_valuation")
-
-            # If Kenji IRA (CU-5011), record pending:round2 tag and emit clarification item
-            if acct_num == "CU-5011":
-                prov.append(
-                    Provenance(
-                        source="assumption",
-                        rule_or_model="kenji_ira_householding",
-                        confidence=0.85,
-                        evidence="Rolled into Nakamura Household under proposed default Option A, tagged pending:round2_householding pending Dana's confirmation.",
+                # Inactive households (e.g. Thompson, settled in Round 1) need no valuation decision.
+                if hh_by_id[hh_id].status == "ACTIVE":
+                    signals.append(
+                        RawAnomalySignal(
+                            signal_id=f"sig_stale_{acct_num}",
+                            anomaly_type="stale_valuation",
+                            affected_entities=[acct_num, holder],
+                            facts={
+                                "account_id": acct_num,
+                                "holder": holder,
+                                "custodian": raw_a["Custodian"],
+                                "market_value_usd": mv_usd,
+                                "as_of_date": as_of_str,
+                                "feed_cutoff_date": valuation_cutoff,
+                                "pipeline_action": "Account retained at last reported balance with its original as-of date; household tagged pending:round2_stale_valuation.",
+                            },
+                            source_evidence=related_notes(holder),
+                        )
                     )
-                )
-                if hh_id in hh_by_id and "pending:round2_householding" not in hh_by_id[hh_id].source_tags:
-                    hh_by_id[hh_id].source_tags.append("pending:round2_householding")
 
             accounts_out.append(
                 Account(
@@ -417,6 +533,16 @@ def build_canonical_output(
         # Roll up AUM and as_of_date to Households (Rule 2 & Rule 3: Unknown != 0; no accounts -> aum_usd = None)
         for acct in accounts_out:
             hh = hh_by_id[acct.household_id]
+            if acct.household_id in deceased_signals:
+                deceased_signals[acct.household_id].facts["accounts"].append(
+                    {
+                        "account_id": acct.account_id,
+                        "custodian": acct.custodian,
+                        "market_value_usd": acct.market_value_usd,
+                        "as_of_date": acct.as_of_date,
+                    }
+                )
+                deceased_signals[acct.household_id].affected_entities.append(acct.account_id)
             hh.aum_usd = round((hh.aum_usd or 0.0) + (acct.market_value_usd or 0.0), 2)
             if hh.as_of_date is None or acct.as_of_date > hh.as_of_date:
                 hh.as_of_date = acct.as_of_date
@@ -440,6 +566,27 @@ def build_canonical_output(
             if not hh_id or hh_id not in valid_hh_ids:
                 logfire.warn("Skipping orphan or unassigned-household interaction", interaction_id=page_id, client=m_client)
                 print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: Held out (no valid household: prospect not in CRM, or household held for missing primary advisor)")
+                meeting_facts = {
+                    "meeting_id": page_id,
+                    "client_label": m_client,
+                    "date": str(raw_m["Date"]),
+                    "attendee": raw_m.get("Attendee"),
+                    "notes": raw_m.get("Notes"),
+                }
+                if hh_id and hh_id in held_hh_signals:
+                    held_hh_signals[hh_id].facts["held_interactions"].append(meeting_facts)
+                else:
+                    signals.append(
+                        RawAnomalySignal(
+                            signal_id=f"sig_orphan_interaction_{page_id}",
+                            anomaly_type="orphan_interaction",
+                            affected_entities=[str(m_client)],
+                            facts={
+                                **meeting_facts,
+                                "pipeline_action": "Meeting held out of the canonical output; no household was created from it.",
+                            },
+                        )
+                    )
                 continue
 
             raw_att = raw_m.get("Attendee")
@@ -513,146 +660,55 @@ def build_canonical_output(
             print(f"  ✓ Canonical Entities Finalized: {len(households_out)} households, {len(clients_out)} clients, {len(accounts_out)} accounts, {len(interactions_out)} interactions, {len(mapping_result.advisors)} advisors")
             print("=" * 80)
 
-        # 5. Assemble the 8 Structured Operational Clarification Items with Verified Facts
-        clarifications = [
-            ClarificationItem(
-                id="clarif_advisor_assignments",
-                category="Primary Advisor Assignments",
-                trigger="Four client households have no assigned primary advisor on the current roster: Maria Delgado, George Whitfield, Louis Petit, and Joris Vandermeer.",
-                evidence=(
-                    "In Notion CRM, Maria Delgado and Louis Petit list Service Rep Marcus Webb; George Whitfield lists departed contractor A. Novak; "
-                    "Joris Vandermeer has a blank Advisor field. In Round 1 Slack, Dana explicitly stated: "
-                    "'The Advisor is the one who owns the relationship — that's the real advisor. Service Rep is just whoever handles day-to-day paperwork... "
-                    "don't treat them as the advisor... Where the Advisor field is blank that's honestly just sloppy data entry on our side. "
-                    "Don't guess. Flag those to me and I'll tell you the right advisor.'"
-                ),
-                candidate_options=[
-                    "Option A: Assign specific advisors from the active roster (Elena, Sarah, James, etc.) as designated by Dana",
-                    "Option B: Hold all four records as unassigned and out of active reporting until explicit primary advisor assignments are confirmed",
-                ],
-                proposed_default="Option B — Hold all four records as unassigned and out of active reporting until explicit primary advisor assignments are confirmed",
-                question_for_dana="Which primary advisors from the active roster should be assigned to Maria Delgado, George Whitfield, Louis Petit, and Joris Vandermeer?",
-            ),
-            ClarificationItem(
-                id="clarif_stale_custodian_balances",
-                category="Stale Account Valuations",
-                trigger=(
-                    "Two active accounts on the custodian feed show statement dates older than the June 30, 2025 quarter-end: "
-                    "Maria Delgado (CU-5004 at Schwab, $1,240,000 as of 2024-12-31) and Oliver Ashford (CU-6024 at Fidelity, $1,450,000 as of 2024-09-30)."
-                ),
-                evidence=(
-                    "Both clients are active in Notion CRM (Delgado had an annual review on March 20, 2025; Ashford is an active HNW client since February 2015). "
-                    "Neither is marked as churned. Thompson Joint (CU-5009, 2023-09-30) is excluded as Dana confirmed in Round 1 that Thompson churned in 2023 and is inactive."
-                ),
-                candidate_options=[
-                    "Option A: Keep both active on advisor dashboards using their last reported balance tagged pending statement refresh",
-                    "Option B: Exclude both accounts from current household AUM totals until updated June 30, 2025 statements are received",
-                ],
-                proposed_default="Option A — Keep both active on advisor dashboards using their last reported balance tagged pending statement refresh, rather than understating active assets",
-                question_for_dana="Should we keep Maria Delgado (CU-5004 at Schwab, $1.24M) and Oliver Ashford (CU-6024 at Fidelity, $1.45M) active on dashboards using their last reported balances while refreshed custodian statements are pending?",
-            ),
-            ClarificationItem(
-                id="clarif_omar_farouk_status",
-                category="Status & Active AUM Treatment",
-                trigger="CRM lists Omar Farouk as Status = Active, but also carries a Deceased tag. His Schwab account CU-6035 holds $1,660,000 USD as of 2025-06-30.",
-                evidence="The conflicting CRM fields leave it unclear whether the account is undergoing estate/beneficiary distribution or if the Deceased tag was entered in error.",
-                candidate_options=[
-                    "Option A: Mark the household Inactive as part of estate transition and exclude the $1.66M from active billing and advisor AUM totals",
-                    "Option B: Keep the household Active and include the $1.66M in active AUM pending confirmation from the estate team",
-                ],
-                proposed_default="Option A — Mark the household Inactive and exclude the $1.66M from active billing and advisor AUM until estate documentation is confirmed",
-                question_for_dana="Please confirm whether Omar Farouk's household should be marked Inactive and excluded from active billing and advisor AUM while the estate transition is documented.",
-            ),
-            ClarificationItem(
-                id="clarif_kenji_nakamura_ira",
-                category="Household Grouping",
-                trigger=(
-                    "Kenji Nakamura has a corporate holding company, Nakamura Holdings LLC (CU-5006 at Fidelity, $8,900,000), "
-                    "and an individual IRA (CU-5011 at Fidelity, $210,000)."
-                ),
-                evidence=(
-                    "Meeting note on April 30, 2025 records verbatim: 'Family still deciding whether Kenji's IRA sits under the LLC or on its own.' "
-                    "Client page note also states: 'Authorized signer on Nakamura Holdings LLC... Also opened a personal IRA last year. "
-                    "Not sure whether we report the IRA under the LLC household or treat it as his own — flag for ops.'"
-                ),
-                candidate_options=[
-                    "Option A: Roll the personal IRA (CU-5011) into the Nakamura Holdings LLC household ($9.11M total) for consolidated client portal viewing",
-                    "Option B: Create a separate personal household for Kenji Nakamura ($210,000) alongside the corporate entity",
-                    "Option C: Hold CU-5011 in the unassigned onboarding queue without mapping to a household until the family confirms",
-                ],
-                proposed_default="Option C — Hold CU-5011 in the unassigned onboarding queue without mapping to a household until the family confirms",
-                question_for_dana="Should Kenji Nakamura's personal IRA (CU-5011 at Fidelity, $210,000) roll into the Nakamura Holdings LLC household for a combined $9.11M view, or be set up as a separate personal household?",
-            ),
-            ClarificationItem(
-                id="clarif_orphan_custodian_accounts",
-                category="Custodian Accounts Without Client Profiles",
-                trigger=(
-                    "Custodian feeds include funded accounts with no matching client or household record in Notion CRM: "
-                    "Carlos Vasquez (CU-5010 at Schwab, $980,000) and Priyanka Mehta (CU-6025 at Schwab, $670,000)."
-                ),
-                evidence=(
-                    "Canonical Rule 4 mandates that every account roll up to a household with no orphan accounts. "
-                    "Neither Carlos Vasquez nor Priyanka Mehta has an account holder match in CRM client, household, or meeting records."
-                ),
-                candidate_options=[
-                    "Option A: Create new client households for Carlos Vasquez and Priyanka Mehta under their own names (requiring advisor assignments)",
-                    "Option B: Link them to existing client households (please specify which household or trust each account belongs to)",
-                    "Option C: Hold both accounts in the unassigned onboarding queue without mapping them to a household until identified",
-                ],
-                proposed_default="Option C — Hold both accounts in the unassigned onboarding queue without mapping them to a household until identified",
-                question_for_dana="For Carlos Vasquez's CU-5010 ($980k at Schwab) and Priyanka Mehta's CU-6025 ($670k at Schwab), should we create new client households or attach the accounts to existing families or trusts? If new households, please provide the advisor assignments.",
-            ),
-            ClarificationItem(
-                id="clarif_orphan_prospect_interaction",
-                category="Prospect Interaction Without CRM Profile",
-                trigger="June 8, 2025 meeting record: 'Intro Call — Redwood Capital', Attendee: James Okafor.",
-                evidence=(
-                    "Meeting note states verbatim: 'Referred lead — not in the CRM yet.' "
-                    "Canonical Rule 7 mandates that every interaction roll up to an existing household and forbids minting a household from an interaction."
-                ),
-                candidate_options=[
-                    "Option A: Create Redwood Capital as a Prospect household in CRM and link the interaction to James Okafor",
-                    "Option B: Hold the interaction in the prospect intake queue without creating a canonical household until formal onboarding begins",
-                ],
-                proposed_default="Option B — Hold the interaction in the prospect intake queue without creating a canonical household until formal onboarding begins",
-                question_for_dana="Should Redwood Capital be created as a Prospect household in CRM so the June 8, 2025 introductory meeting attaches, or held in the prospect intake queue?",
-            ),
-            ClarificationItem(
-                id="clarif_bianchi_chf_fx",
-                category="Swiss Franc (CHF) FX Conversion Confirmation",
-                trigger="Francesca Bianchi's account CU-6022 at Pictet is denominated in Swiss Francs (2,100,000 CHF).",
-                evidence=(
-                    "Converted to $2,633,190.00 USD at the official June 30, 2025 ECB / Federal Reserve H.10 reference rate of 1 CHF = 1.2539 USD. "
-                    "In Round 1, Dana approved converting EUR (Al-Rashid) to USD at quarter-end rates, but CHF was not explicitly discussed. Provenance is recorded as assumption."
-                ),
-                candidate_options=[
-                    "Option A: Confirm applying the official 2025-06-30 ECB / Fed H.10 rate of 1 CHF = 1.2539 USD ($2,633,190.00 USD) per firm quarter-end FX policy",
-                    "Option B: Provide a custom firm-specific exchange rate for Pictet Swiss Franc accounts",
-                ],
-                proposed_default="Option A — Apply the official 2025-06-30 rate of 1 CHF = 1.2539 USD ($2,633,190.00 USD) and note the conversion in reporting",
-                question_for_dana="Please confirm that we should convert Francesca Bianchi's 2,100,000 CHF balance in CU-6022 at Pictet to USD using the official 2025-06-30 ECB/Fed H.10 rate of 1.2539 USD/CHF ($2,633,190.00 USD).",
-            ),
-            ClarificationItem(
-                id="clarif_spouse_conflicts_and_fee_tiers",
-                category="Spouse Attribute Conflicts & Undefined Fee Schedule Tiers",
-                trigger="Spouses in multi-member households have conflicting Risk Profiles and Fee Schedules, and 13 clients use undefined or custom fee schedules.",
-                evidence=(
-                    "Canonical Rule 6 requires flagging genuine attribute contradictions. In Notion CRM:\n"
-                    "- Chen Household: Robert Chen (Conservative / 1.00%) vs Linda Chen (Moderate / 0.85%)\n"
-                    "- Abramson Household: Daniel Abramson (Conservative / 0.85%) vs Rachel Abramson (Aggressive / 1.00%)\n"
-                    "- Sullivan Household: Megan Sullivan (Moderate / 0.85%) vs Tom Sullivan (Aggressive / Tier 1)\n"
-                    "- Thompson: Bill Thompson (Moderate / Tier 1) vs Sarah Thompson (Aggressive / 1.10%)\n"
-                    "- Undefined Fee Tiers: 10 clients list Tier 1 (Okonkwo, B. Thompson, Nguyen, Delacroix, Yamamoto, T. Sullivan, Vandermeer, Kruger, Farouk, Laurent); "
-                    "Hassan Karimi lists Tier 2; Beatriz Gomes lists See LOE; Astrid Johansson lists 0.85% – negotiated."
-                ),
-                candidate_options=[
-                    "Option A: Preserve individual Risk Profiles and Fee Schedules on client records in source_tags and use the designated primary contact's profile for household-level reporting",
-                    "Option B: Provide canonical definitions for Tier 1, Tier 2, and See LOE, and specify single household-wide governing profiles",
-                ],
-                proposed_default="Option A — Preserve individual attributes on each client record in source_tags and report household metrics under the primary contact's profile",
-                question_for_dana="For households with conflicting spouse profiles (Chen, Abramson, Sullivan, Thompson) and undefined fee tiers (Tier 1, Tier 2, See LOE), should we preserve individual client values in source tags and use the primary contact for household-level reporting?",
-            ),
-        ]
+        # 5. Household attribute conflicts and non-standard fee schedules (Rule 6), derived from CRM data
+        conflict_rows: list[dict[str, Any]] = []
+        for hh_id, members in sorted(hh_groups.items()):
+            if hh_id not in valid_hh_ids or len(members) < 2:
+                continue
+            for field in ("Risk Profile", "Fee Schedule"):
+                vals = {m["raw"].get(field) for m in members if m["raw"].get(field)}
+                if len(vals) > 1:
+                    conflict_rows.append(
+                        {
+                            "household": members[0]["hh_name"],
+                            "field": field,
+                            "values_by_client": {m["raw"]["Name"]: m["raw"].get(field) for m in members},
+                        }
+                    )
+        if conflict_rows:
+            signals.append(
+                RawAnomalySignal(
+                    signal_id="sig_household_attribute_conflicts",
+                    anomaly_type="household_attribute_conflict",
+                    affected_entities=sorted({r["household"] for r in conflict_rows}),
+                    facts={
+                        "conflicts": conflict_rows,
+                        "pipeline_action": "Each client keeps its own value in source_tags; no household-level value was invented.",
+                    },
+                )
+            )
+
+        nonstandard_fees: dict[str, list[str]] = {}
+        for raw_c in mapping_result.all_clients_raw:
+            fee = (raw_c.get("Fee Schedule") or "").strip()
+            if fee and not _is_standard_fee(fee):
+                nonstandard_fees.setdefault(fee, []).append(raw_c["Name"])
+        if nonstandard_fees:
+            signals.append(
+                RawAnomalySignal(
+                    signal_id="sig_nonstandard_fee_schedules",
+                    anomaly_type="nonstandard_fee_schedule",
+                    affected_entities=sorted(nonstandard_fees),
+                    facts={
+                        "values_to_clients": nonstandard_fees,
+                        "pipeline_action": "Values preserved verbatim as fee_schedule tags; no fee percentage was inferred.",
+                    },
+                )
+            )
+
+        signals = list(held_hh_signals.values()) + list(deceased_signals.values()) + signals
+        for sg in signals:
+            logfire.info("anomaly_signal", signal_id=sg.signal_id, anomaly_type=sg.anomaly_type)
 
         output = CanonicalOutput(
             advisors=mapping_result.advisors,
@@ -666,111 +722,89 @@ def build_canonical_output(
         span.set_attribute("canonical_clients", len(clients_out))
         span.set_attribute("canonical_accounts", len(accounts_out))
         span.set_attribute("canonical_interactions", len(interactions_out))
-        span.set_attribute("clarifications_count", len(clarifications))
+        span.set_attribute("anomaly_signals", len(signals))
 
-        return output, clarifications
+        return output, signals
 
 
-def verify_clarifications_fact_check(memo_text: str, sources_dir: str | Path = "sources") -> None:
-    """Rigorous post-generation fact-check verifying every account ID, custodian, holder, and quote against ground truth."""
-    import re
-    import pandas as pd
+def verify_clarifications_fact_check(
+    memo_text: str,
+    items: "list[ClarificationItem]",
+    signals: list[RawAnomalySignal],
+    sources_dir: str | Path = "sources",
+) -> None:
+    """Data-driven check of the Round 2 memo against the sources and the detected signals.
 
+    Nothing here names specific clients or accounts: every check is derived from the
+    custodian feed and the anomaly signals produced during assembly.
+    """
     positions_df = pd.read_excel(Path(sources_dir) / "custodian_positions.xlsx")
     pos_map = {r["Account_Number"]: r for _, r in positions_df.iterrows()}
+    all_custodians = {str(r["Custodian"]) for r in pos_map.values()}
 
-    # 1. Check for hallucinated phrases or conversational email roleplay
-    forbidden_terms = [
-        "CPA",
-        "transition spreadsheet",
-        "transition spreadsheet for Sarah",
-        "Alex",
-        "Hi Dana",
-        "Dear Dana",
-        "Best regards",
-        "Warmly",
-    ]
-    for term in forbidden_terms:
-        # Use regex word boundaries for short words like Alex
+    # 1. No email roleplay
+    for term in ("Hi Dana", "Dear Dana", "Best regards", "Warmly"):
         if re.search(rf"\b{re.escape(term)}\b", memo_text, re.IGNORECASE):
-            raise AssertionError(f"Fact-Check Failure: Forbidden term or hallucination '{term}' detected in clarifications memo!")
+            raise AssertionError(f"Fact-Check Failure: conversational roleplay '{term}' detected in memo!")
 
-    # 2. Check that all 8 required operational topics are present
-    required_topics = [
-        ("Maria Delgado", "Primary Advisor Assignments"),
-        ("George Whitfield", "Primary Advisor Assignments"),
-        ("CU-5004", "Stale Account Valuations (Delgado)"),
-        ("CU-6024", "Stale Account Valuations (Ashford)"),
-        ("CU-6035", "Omar Farouk Deceased / Active Status"),
-        ("CU-5006", "Nakamura Holdings LLC"),
-        ("CU-5011", "Kenji Nakamura IRA"),
-        ("CU-5010", "Carlos Vasquez Unmatched Account"),
-        ("CU-6025", "Priyanka Mehta Unmatched Account"),
-        ("Redwood Capital", "Redwood Capital Prospect Interaction"),
-        ("CU-6022", "Francesca Bianchi Swiss Franc (CHF)"),
-        ("1.2539", "ECB / Fed H.10 CHF Conversion Rate"),
-        ("Chen", "Spouse Profile Conflict"),
-        ("Tier 1", "Undefined Fee Schedule Tiers"),
-    ]
-    for key_phrase, topic_desc in required_topics:
-        if key_phrase.lower() not in memo_text.lower():
-            raise AssertionError(f"Fact-Check Failure: Missing required topic or entity '{key_phrase}' ({topic_desc})!")
+    # 2. Every detected signal is covered by at least one item; no item cites an unknown signal
+    known_ids = {sg.signal_id for sg in signals}
+    covered: set[str] = set()
+    for it in items:
+        unknown = set(it.signal_ids) - known_ids
+        if unknown:
+            raise AssertionError(f"Fact-Check Failure: item '{it.id}' cites unknown signal ids {sorted(unknown)}!")
+        covered |= set(it.signal_ids)
+    missing = known_ids - covered
+    if missing:
+        raise AssertionError(f"Fact-Check Failure: detected issues not covered by any question: {sorted(missing)}!")
 
-    # 3. Assert settled Round 1 items are NOT re-asked as questions
-    if "CU-5007" in memo_text:
-        raise AssertionError("Fact-Check Failure: CU-5007 (Dmitri Petrov) was settled in Round 1 and must not appear in Round 2 questions!")
+    # 3. Every entity of a covered signal is named in the memo (account ids and household/holder names)
+    for sg in signals:
+        for ent in sg.affected_entities:
+            if re.fullmatch(r"CU-\d+", ent):
+                present = ent in memo_text
+            else:
+                present = any(t in memo_text.lower() for t in _name_tokens(ent)) if _name_tokens(ent) else True
+            if not present:
+                raise AssertionError(f"Fact-Check Failure: '{ent}' ({sg.anomaly_type}) is missing from the memo!")
 
-    # 4. Check account-custodian-holder alignment
-    def check_custodian_association(acct: str, correct_cust: str, wrong_custs: list[str], s: str) -> None:
-        has_correct = bool(re.search(rf"{acct}[^.\n\)]{{0,35}}{correct_cust}|{correct_cust}[^.\n\(]{{0,35}}{acct}", s, re.IGNORECASE))
-        if not has_correct:
-            raise AssertionError(f"Fact-Check Failure: {acct} must be explicitly associated with {correct_cust}!")
-        for w in wrong_custs:
-            has_wrong = bool(re.search(rf"{acct}[^.\n\)]{{0,35}}{w}|{w}[^.\n\(]{{0,35}}{acct}", s, re.IGNORECASE))
-            if has_wrong:
-                raise AssertionError(f"Fact-Check Failure: {acct} is held at {correct_cust}, not {w}!")
+    # 4. Account ids exist in the feed and are not paired with the wrong custodian
+    def near(a: str, b: str) -> bool:
+        return bool(re.search(rf"{re.escape(a)}[^.\n\)]{{0,35}}{re.escape(b)}|{re.escape(b)}[^.\n\(]{{0,35}}{re.escape(a)}", memo_text, re.IGNORECASE))
 
-    found_accounts = re.findall(r"CU-\d+", memo_text)
-    for acct_id in set(found_accounts):
+    for acct_id in set(re.findall(r"CU-\d+", memo_text)):
         if acct_id not in pos_map:
-            raise AssertionError(f"Fact-Check Failure: Unknown account ID '{acct_id}' in memo!")
+            raise AssertionError(f"Fact-Check Failure: unknown account ID '{acct_id}' in memo!")
+        true_cust = str(pos_map[acct_id]["Custodian"])
+        for other in all_custodians - {true_cust}:
+            if near(acct_id, other) and not near(acct_id, true_cust):
+                raise AssertionError(f"Fact-Check Failure: {acct_id} is held at {true_cust}, not {other}!")
 
-        if acct_id == "CU-6035":
-            if "Omar Farouk" not in memo_text:
-                raise AssertionError("Fact-Check Failure: CU-6035 must match Omar Farouk!")
-            check_custodian_association("CU-6035", "Schwab", ["Fidelity"], memo_text)
+    # 5. Dollar figures for signalled accounts must match the feed (original or converted amount)
+    for sg in signals:
+        aid = sg.facts.get("account_id")
+        if isinstance(aid, str) and aid in pos_map and aid in memo_text:
+            row = pos_map[aid]
+            allowed = {float(row["Market_Value"])}
+            if sg.facts.get("converted_usd") is not None:
+                allowed.add(float(sg.facts["converted_usd"]))
+            # Only assert when the item explicitly cites a dollar amount next to the account id
+            for m in re.finditer(rf"{re.escape(aid)}[^\n]{{0,60}}?\$([\d,]+(?:\.\d+)?)([MmKk]?)", memo_text):
+                num = float(m.group(1).replace(",", ""))
+                num *= {"m": 1e6, "k": 1e3}.get(m.group(2).lower(), 1)
+                if not any(abs(num - a) <= max(1.0, 0.006 * a) for a in allowed):
+                    raise AssertionError(f"Fact-Check Failure: amount ${m.group(1)}{m.group(2)} next to {aid} does not match the feed!")
 
-        if acct_id in ("CU-5006", "CU-5011"):
-            check_custodian_association(acct_id, "Fidelity", ["Schwab"], memo_text)
-
-        if acct_id in ("CU-5010", "CU-6025"):
-            check_custodian_association(acct_id, "Schwab", ["Fidelity"], memo_text)
-
-        if acct_id == "CU-6022":
-            check_custodian_association("CU-6022", "Pictet", ["Schwab", "Fidelity"], memo_text)
-
-        if acct_id == "CU-5004":
-            check_custodian_association("CU-5004", "Schwab", ["Fidelity"], memo_text)
-
-        if acct_id == "CU-6024":
-            check_custodian_association("CU-6024", "Fidelity", ["Schwab"], memo_text)
-
-    # 5. Check candidate options vs proposed defaults consistency
-    # Option letter cited in Proposed Default must exist in Candidate Options
-    blocks = memo_text.split("### ")
-    for block in blocks[1:]:
-        lines = block.strip().splitlines()
-        title = lines[0] if lines else ""
-        if not ("—" in title or "–" in title):
+    # 6. Cited option letter in Proposed Default must exist among Candidate Options
+    for block in memo_text.split("### ")[1:]:
+        title = block.strip().splitlines()[0] if block.strip() else ""
+        if not ("\u2014" in title or "\u2013" in title):
             continue
         opt_matches = re.findall(r"\*\*(Option [A-D])\*\*", block)
         default_match = re.search(r"\*\*Proposed Default\*\*:\s*\*\*(Option [A-D])", block)
-        if default_match:
-            cited_opt = default_match.group(1)
-            if cited_opt not in opt_matches:
-                raise AssertionError(
-                    f"Fact-Check Failure in section '{title[:40]}': Proposed default cites '{cited_opt}', "
-                    f"but available candidate options are {opt_matches}!"
-                )
-
-
+        if default_match and default_match.group(1) not in opt_matches:
+            raise AssertionError(
+                f"Fact-Check Failure in section '{title[:40]}': default cites '{default_match.group(1)}', "
+                f"but available candidate options are {opt_matches}!"
+            )
