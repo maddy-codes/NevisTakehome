@@ -2,6 +2,8 @@
 
 Beaconcrest Advisors' Notion CRM, custodian positions, advisor roster and the Round 1 Slack thread are mapped into the five Nevis entities (`advisor`, `household`, `client`, `account`, `interaction`). The mapping is half mechanical and half judgment, so the pipeline automates what it can, lets an LLM make the judgment calls, and turns only what a person must decide into Round 2 questions.
 
+**Agent framework: PydanticAI with Logfire.** It is versatile and quick to set up, it is logging-first (Logfire traces every prompt, structured output and token cost out of the box), and Pydantic schemas double as guardrails by validating every LLM decision and retrying on a bad output.
+
 ## 1. Shape of the system
 
 | Stage | Code | Job |
