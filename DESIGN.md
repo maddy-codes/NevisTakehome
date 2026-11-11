@@ -1,88 +1,61 @@
-# Nevis Onboarding Pipeline — Design & Rules Write-Up
+# Design Note & Slack Rules Write-Up
 
-## 1. System Architecture & Key Trade-Offs
+Beaconcrest Advisors' Notion CRM, custodian positions, advisor roster and the Round 1 Slack thread are mapped into the five Nevis entities (`advisor`, `household`, `client`, `account`, `interaction`). The mapping is half mechanical and half judgment, so the pipeline automates what it can, lets an LLM make the judgment calls, and turns only what a person must decide into Round 2 questions.
 
-The pipeline maps Beaconcrest Advisors' Notion CRM (`Clients*.md`, `Meetings*.md`), custodian balances (`custodian_positions.xlsx`), advisor roster (`advisor_roster.csv`), and Round 1 onboarding Slack thread (`ops_slack_thread.md`) into the five Nevis canonical entities (`advisor`, `household`, `client`, `account`, `interaction`) across four observable stages:
+## 1. Shape of the system
 
-1. **Stage 1 — Deterministic & Knowledge-Base Pass (`src/mapper.py`)**:
-   - Parses the raw Notion Markdown folders (rather than relying solely on the CSVs, which drop the unstructured page body notes) and aligns exact matches, standard dates (`YYYY-MM-DD`), and unambiguous enums (`Individual -> INDIVIDUAL`, `Roth IRA -> ROTH_IRA`, etc.).
-   - Consults `outputs/knowledge_base.json` before flagging any record. Rules learned from prior runs or stakeholder answers are applied deterministically (`source="slack_knowledge"` or `"llm"`) without redundant LLM calls.
-   - Records with non-standard enums (`Legacy`, `Former`, `Churned`, `Client`), missing/abbreviated advisors (`P. Raman`, `E. Sokolova`, `A. Novak`), unstructured notes, non-USD currencies (`EUR`, `CHF`), stale `As_Of_Date` values, failed exact entity joins (`Bob & Linda Chen`, `Ada Okonkwo Revocable Trust`, `Nakamura Holdings LLC`), or critical compliance tags (`Deceased`, `Held Away`) are emitted as `UnresolvedCase` objects with explicit reason codes.
+| Stage | Code | Job |
+|---|---|---|
+| 1. Deterministic pass | `src/mapper.py` | Parses the raw Notion page bodies (the CSVs drop the notes), normalizes dates, names and enums, applies knowledge-base rules, and emits *candidate* cases with reason codes (blank advisor, unmatched holder, stale date, critical tag, note present...). Candidates are not flags. |
+| 2. Agentic resolution | `src/resolver.py`, `src/flag_matrix.py` | A PydanticAI agent (`gpt-5.6-luna`, traced with Logfire) gets one cross-source bundle per candidate (matching CRM rows and notes, custodian accounts, meetings) plus the roster, the Slack thread and the KB. It decides `auto_apply`, `drop_duplicate` or `flag_for_clarification`, with a confidence, provenance source and any reusable rule it learned. |
+| 2b. Blocker ledger | `src/blockers.py` | Every flag carries a typed `Blocker` (matrix rule id, entities, evidence, options, default, `default_action`). They are written to `outputs/blockers.md` / `.json`, grounded with custodian, amount and date from the feed. |
+| 3. Assembly + validation | `src/assembler.py` | Builds the canonical records, applies each blocker's `default_action` (`hold_out`, `retain_and_tag`, `set_inactive`), converts currency, and asserts all 7 canonical rules. Every held-out record must be explained by a blocker or the run fails. |
+| 4. Round 2 memo | `main.py`, `src/blockers.py` | The memo is marked out of the ledger: blockers are grouped (same rule or shared account) into one decision each, the LLM writes it in Dana's language, and a data-driven fact-check verifies it. |
 
-2. **Stage 2 — Context-Targeted Agentic Resolution (`src/resolver.py`)**:
-   - Built with **PydanticAI** (`openai:gpt-5.6-luna`) and instrumented end-to-end with **Pydantic Logfire** (`logfire.instrument_pydantic_ai()`) so every batch, prompt, structured output, and token cost is traced.
-   - **Why PydanticAI + Logfire**: Enforces strict Pydantic schema validation (`BatchResolutionOutput`) on LLM decisions while giving full OpenTelemetry trace visibility across deterministic and agentic spans. Includes disk caching (`reference/llm_cache.json`) for deterministic, offline reproducibility without an API key.
-   - Instead of one giant prompt, `build_case_context()` constructs a targeted cross-source bundle per `UnresolvedCase` (matching CRM records + Markdown notes + custodian accounts + meetings) alongside the Advisor Roster and Round 1 Slack thread.
-   - Each resolution emits a confidence score (`0.0–1.0`), strict provenance attribution, and reusable `KnowledgeRule` items persisted to `outputs/knowledge_base.json`.
+**The flag decision is the LLM's, bounded by an explicit matrix** (`src/flag_matrix.py`, rendered into the prompt):
 
-3. **Stage 3 — Canonical Assembly & Post-Mapping Validation (`src/assembler.py`)**:
-   - Enforces all 7 Nevis Canonical Rules: holds out households missing a `primary_advisor_id` (Rule 1), sums `market_value_usd` per household (Rule 2), sets `aum_usd = null` (never `0`) when a household has no known accounts (Rule 3), blocks orphan accounts (Rule 4) and orphan interactions (Rule 7) from landing in `outputs/canonical_output.json`, and converts non-USD balances with cited central bank FX rates while recording rule ID, rate, and source in provenance (Rule 5).
-   - **Rule 6 (Fields with no first-class home)**:
-     - *Preserved & normalized in `source_tags`*: `Segment` (`High Net Worth -> segment:HNW`), `Risk Profile` (`3 - Moderate -> risk_profile:Moderate`), `Fee Schedule` (`tier 1 -> fee_schedule:Tier 1`), `Client Since` (`client_since:YYYY-MM-DD`), `Referred By`, `Tags` (`VIP`, `ESG`, `Do Not Contact`), `Legacy -> lineage:harborline`, and `Service Rep` (`service_rep:<name>` / `service_rep:A. Novak (departed)`).
-     - *Dropped with logged rationale*: `custodian_positions.Cost_Basis` (per Dana in Slack: tax-only), `clients.Website` (synthetic URLs, irrelevant to wealth management canonical model), and `advisor_roster.office` (not in canonical `advisor` schema).
-   - **Agent-driven flagging (`src/flag_matrix.py`)**: the resolver LLM decides per record whether to `auto_apply`, `drop_duplicate`, or `flag_for_clarification`, using an explicit matrix rendered into its prompt: FLAG rules F1-F7 (no/departed advisor, unmatched account holder, unmatched meeting, genuine source contradiction, stale valuation in an active household, low-confidence link, open question in a page note) and DO-NOT-FLAG rules D1-D10 (Legacy, Service Rep, cost basis, FX, settled duplicates, inactive households, confident normalization, spouse attribute differences and non-percentage fee labels preserved in tags, irrelevant fields, KB rules confirmed by a human/Slack). A flagged record must carry a typed `Blocker` (rule id, entities, evidence, options, default, `default_action`); a validator rejects a flag without one and a blocker on a do-not-flag case.
-   - **Blocker ledger (`src/blockers.py`)**: flagged blockers are written to `outputs/blockers.json` and `outputs/blockers.md` (plus a short audit list of what was decided without flagging), each grounded with the account's custodian/amount/date from the feed. Unanswered blockers are never learned into the knowledge base.
-   - **Assembler applies the agent's default**: `default_action` (`hold_out`, `retain_and_tag`, `set_inactive`) is applied verbatim, so canonical output and memo cannot disagree. The assembler reports every record it held out; a validator fails the run if any held-out record has no blocker explaining it.
-   - **Post-Mapping Validator**: Asserts all 7 canonical invariants hold on `outputs/canonical_output.json`. Spouses maintain their individual `risk_profile` and `fee_schedule` tags on their respective `Client` records without inventing artificial household-level conflicts.
+- **Flag** when: F1 advisor missing or departed (never guess), F2 account holder unmatched, F3 meeting client unmatched, F4 sources genuinely contradict with no Slack answer, F5 stale valuation in an active household, F6 link still ambiguous (confidence < 0.80), F7 a page note states an open question.
+- **Never flag** (D1-D10): Legacy, Service Rep, cost basis, any non-USD balance, Slack-confirmed duplicates, inactive households, confidently resolvable abbreviations and formats, spouse/co-client differences in Risk Profile or Fee Schedule and non-percentage fee labels (preserved in tags), irrelevant fields, and KB rules a human or Slack confirmed.
 
-4. **Stage 4 — Round 2 Clarification Synthesizer & Post-Synthesis Fact-Check Validator (`main.py`, `src/assembler.py`)**:
-   - The memo is marked out of the blocker ledger, not from separate detection logic. Blockers are grouped deterministically (same flag rule or shared account) into one decision each; the LLM writes one item per group in Dana's operating language, keeping facts, options and the applied default.
-   - **Fact-check (`verify_memo_against_ledger`)**, data-driven: one item per group covering all its blockers; every named account ID exists in `custodian_positions.xlsx` and is never paired with the wrong custodian; dollar amounts beside an account ID match the feed; each default cites an existing option letter and reflects the action the assembler applied. On failure the synthesis is retried (up to 3 attempts) with the error appended.
+A validator rejects a flag without a blocker and a blocker on a never-flag case, so the matrix is enforced in code, not just requested.
 
----
+## 2. Key trade-offs
 
-## 2. Comprehensive Data Normalization Architecture
+- **LLM where judgment is needed, code where it is better.** Matching, ambiguity and wording go to the model. Dates, enums, FX arithmetic, AUM sums, holdout coverage and every invariant stay deterministic.
+- **Per-case context, not one giant prompt.** Each case gets only its related records, so decisions are traceable and cheap to retry.
+- **No hardcoded answers.** Nothing in the code names a client or account. The memo can only contain what the ledger contains, and the fact-check derives its expectations from the custodian feed and the ledger.
+- **Memo and output cannot disagree.** The same `default_action` drives the canonical output and the memo's proposed default, and a check confirms the default's wording reflects the applied action.
+- **Under-flag vs over-flag.** Rule 6 says dumping everything into flags is wrong, so settled items are never re-asked. When Slack does not settle something, the agent flags it.
+- **Structured-output retries.** The agents retry up to 4 times to repair schema misses. The model is non-deterministic, so a re-run can flag slightly differently; the committed outputs are one live run.
+- **Offline fallback.** `--dry-run` replays `reference/llm_cache.json` so the pipeline can be checked without a key. The real LLM path is the default.
 
-The pipeline implements a 4-tier normalization pipeline that systematically cleans and maps unstructured client CRM records:
+## 3. Normalization and Rule 6
 
-### A. Format & Type Normalization
-1. **Dates**: Notion CRM exports dates as mixed human prose (`"June 12, 2025"`, `"September 5, 2023"`, `"November 2, 2019"`), while custodian spreadsheets use standard date formats. The parser normalizes all date occurrences across `Client Since`, `Date`, and `As_Of_Date` using `pd.to_datetime(..., format="mixed").dt.strftime("%Y-%m-%d")` into strict ISO-8601 `YYYY-MM-DD`.
-2. **Person Names**: Inverted CSV export artifacts (`"Petrov, Dmitri"`, `"Nakamura, Kenji"`) are detected via comma presence, extracting `first_name="Dmitri"`, `last_name="Petrov"`. Standard strings (`"First Last"`) split cleanly on trailing whitespace.
-3. **Household Entities**: Raw CRM household names vary from single family names (`"Okonkwo"`), to compound phrases (`"Chen Household"`), to empty fields. The pipeline strips trailing whitespace and redundant `" Household"` substrings using regex (`r"\s+Household$"`), generating canonical names (`"Chen Household"`) and deterministic URL-safe primary keys (`hh_chen`, `hh_okonkwo`).
+- **Dates** to ISO `YYYY-MM-DD`. **Names**: inverted `Last, First` is split. **Households** strip a trailing "Household" and get stable ids (`hh_chen`).
+- **Enums**: status (`Active`/`Client` to ACTIVE, `Former`/`Churned` to INACTIVE, `Legacy` to ACTIVE plus a lineage tag), account type (`Joint WROS`/`TIC` to JOINT, `Rollover IRA` to IRA, `Trust-Rev` to TRUST), interaction type (`QBR`/`Check-in`/`Annual Review` to REVIEW, `Intro Call`/`Discovery` to PROSPECTING).
+- **Currency**: non-USD balances convert to `market_value_usd` at the 2025-06-30 quarter-end ECB rates (EUR 1.1720, CHF 1.2539 USD per unit), keep `currency_original`, and record rate and source in provenance.
+- **Preserved in `source_tags`**: segment, risk profile, fee schedule, client-since, referred-by, tags (VIP, ESG, Do Not Contact), `lineage:harborline`, and `service_rep:<name>` (never the primary advisor).
+- **Dropped with a logged reason**: `Cost_Basis` (tax only, per Dana), `Website`, roster `office`.
+- **Provenance** on every value: `deterministic`, `slack_knowledge`, `llm`, `assumption` (or `human`).
 
-### B. Enum & Semantic Normalization
-1. **Status Mapping (`ACTIVE | INACTIVE | PROSPECT`)**:
-   - Standard active variants (`'Active'`, `'active '`, `'ACTIVE'`, `'Client'`) map to `ACTIVE`.
-   - The knowledge layer maps `'Legacy'` to `ACTIVE` while attaching `"lineage:harborline"` to `source_tags`, honoring Dana's requirement to track the acquired book.
-   - Winding-down and departed clients (`'Former'`, `'Churned'`) map to `INACTIVE`.
-   - Onboarding leads (`'Prospect'`) map to `PROSPECT`.
-2. **Account Types (`INDIVIDUAL | JOINT | TRUST | IRA | ROTH_IRA | CORPORATE | OTHER`)**:
-   - Normalizes custodian terms: `'Joint WROS'` / `'Joint TIC'` → `JOINT`; `'Rollover IRA'` → `IRA`; `'Trust-Rev'` → `TRUST`; `'Corporate'` → `CORPORATE`.
-3. **Interaction Types (`REVIEW | PROSPECTING | ONBOARDING | OTHER`)**:
-   - Normalizes meeting labels: `'Annual Review'`, `'Review'`, `'QBR'`, `'Check-in'` → `REVIEW`; `'Intro Call'`, `'Discovery'`, `'Prospecting'` → `PROSPECTING`; `'Onboarding'` → `ONBOARDING`.
+## 4. Rules from the Slack thread and how they are encoded
 
-### C. Rule 6: Normalizing Fields with No First-Class Home
-Because the target schema deliberately limits first-class columns to universal core attributes, custom Notion CRM fields are preserved as normalized, structured strings inside `source_tags`:
-- `Segment`: Standardized uppercase notation (`"High Net Worth"` → `segment:HNW`, `segment:Mass Affluent`, `segment:Corporate`).
-- `Risk Profile`: Scale syntax normalized (`"3 - Moderate"` → `risk_profile:Moderate`, `risk_profile:Conservative`, `risk_profile:Aggressive`, `risk_profile:Growth`).
-- `Fee Schedule`: Normalized casing (`"tier 1"` → `fee_schedule:Tier 1`, `fee_schedule:1.00%`, `fee_schedule:0.85%`).
-- `Lineage & Attribution`: `referred_by:<source>`, `client_since:YYYY-MM-DD`, `tag:VIP`, `tag:ESG`, `tag:Do Not Contact`.
-- `Operational Servicing Role`: `Service Rep` is preserved in `source_tags` as `service_rep:Marcus Webb` (and `service_rep:A. Novak (departed)`) so administrative paperwork ownership is tracked, while strictly upholding Dana's rule that `Service Rep` is never mapped to `primary_advisor_id`.
-- `Unused Columns`: Dropped with explicit provenance: `Cost_Basis` (tax-only per Dana) and `Website` (synthetic URLs).
+Each rule is a `KnowledgeRule` in `outputs/knowledge_base.json`, keyed `<rule_type>:<source_value>`, applied by Stage 1 before any LLM call.
 
-### D. Currency & Financial Normalization
-- Rule 5 mandates that all account figures be reported in `market_value_usd`.
-- Converted using official **June 30, 2025 quarter-end central bank reference rates**:
-  - **EUR**: `1.1720 USD per EUR` (official ECB reference rate on 2025-06-30 / Fed H.10: `1.1724`).
-  - **CHF**: `1.2539 USD per CHF` (ECB reference rate on 2025-06-30: 1 EUR = 0.9347 CHF; Fed H.10: `1.2517`).
-- Both accounts retain their original currency (`currency_original="EUR"`, `"CHF"`) and attach detailed `Provenance` records documenting the exchange rate and central bank source.
+| What Dana said | Rule key | Effect |
+|---|---|---|
+| `Legacy` = the acquired Harborline book; treat as active, keep the lineage | `status_map:Legacy` | ACTIVE plus tag `lineage:harborline` |
+| Advisor owns the relationship; Service Rep is paperwork only; blank Advisor: don't guess, flag it | `ignored_field:Service Rep` | Never maps to `primary_advisor_id`; those households are held out and asked in Round 2 (F1) |
+| `A. Novak` is Anna Novak, a contractor who left; surface anything still pointing at her | `departed_staff:A. Novak` | Not accepted as an advisor or attendee; affected records flagged |
+| AUM is market value at the most recent quarter-end; ignore cost basis | `ignored_field:Cost_Basis` | Dropped; `aum_usd` is the sum of `market_value_usd` |
+| Report in USD, convert foreign balances at quarter-end FX and note it | `fx_rate:EUR` (and `fx_rate:CHF`, same policy) | Converted automatically with provenance; never flagged (D4) |
+| `Dmitri Petrov` is an import duplicate; collapse | `duplicate_client:Petrov, Dmitri` | Duplicate row dropped; its name still resolves to the surviving household, so his meeting lands |
+| Thompson left in 2023, winding down; mark inactive, exclude from active AUM | `status_map:Former`, `status_map:Churned` | INACTIVE |
 
----
+**Applying and correcting rules.** Stage 1 looks a rule up before creating a candidate, so a warm KB removes already-settled cases from the LLM's queue. Rules carry `version`, `active`, `scope` (`firm_specific` or `global_reusable`) and `evidence`. `upsert()` bumps the version when a target changes, and `active=false` retires a stale rule at once. Safeguards against a wrong rule going stale: the agent never learns a rule from a record it flagged (an unanswered question is not an answer), and KB rules with provenance `llm` or `assumption` do not settle a case that a flag rule still covers.
 
-## 3. Business Rules Extracted from `sources/ops_slack_thread.md` & Lifecycle in `outputs/knowledge_base.json`
+## 5. Known gaps and next steps
 
-| Business Decision / Rule | Source / Authority | Encoded `KnowledgeRule` Key | Canonical Action & Provenance |
-|---|---|---|---|
-| `Status = Legacy` is the 2019 Harborline acquisition book; treat as active clients and keep lineage | Dana Ruiz (Slack Round 1) | `status_map:Legacy` (`scope="firm_specific"`) | `status = ACTIVE` + append `"lineage:harborline"` to `source_tags` (`provenance="slack_knowledge"`) |
-| `Advisor` owns relationship; `Service Rep` is paperwork only — never fall back to `Service Rep` when `Advisor` is blank | Dana Ruiz (Slack Round 1) | `ignored_field:Service Rep` | Do not map `Service Rep` to `primary_advisor_id`; hold blank `Advisor` households (`Delgado`, `Whitfield`, `Petit`, `Vandermeer`) out of canonical output and flag to Dana |
-| `A. Novak` (Anna Novak) is a contractor who left last year; surface records still pointing to her | Dana Ruiz (Slack Round 1) | `departed_staff:A. Novak` | Clear `A. Novak` from meeting `Attendee` (`Review — Delgado`) and flag `George Whitfield` / `Maria Delgado` for reassignment |
-| AUM is always `Market_Value` as of quarter-end; ignore `Cost_Basis` | Dana Ruiz (Slack Round 1) | `ignored_field:Cost_Basis` | Drop `Cost_Basis`; compute `aum_usd` from `market_value_usd` (`provenance="slack_knowledge"`) |
-| Convert EUR account (`Al-Rashid`, 1.875M EUR) to USD at quarter-end FX | Dana Ruiz (Slack Round 1) | `fx_rate:EUR` (`target="1.1720"`) | Convert to $2,197,500.00 USD at official ECB 2025-06-30 rate (1.1720; Fed H.10: 1.1724); record FX rule & rate in account provenance (`provenance="slack_knowledge"`) |
-| Convert CHF account (`Bianchi`, 2.1M CHF at Pictet) to USD | FDE Assumption (Not in Slack) | `fx_rate:CHF` (`target="1.2539"`) | Convert to $2,633,190.00 USD at official ECB 2025-06-30 rate (1.2539; Fed H.10: 1.2517); record `provenance="assumption"` per Dana's general foreign-currency policy |
-| `Dmitri Petrov` / `Petrov, Dmitri` is an import duplicate — collapse into one person | Dana Ruiz (Slack Round 1) | `duplicate_client:Petrov, Dmitri`, `meeting_client_alias:Petrov, Dmitri` | Drop duplicate client row, route meeting to `Petrov Household`, flag conflicting Fee/Risk values (`1.10%/Moderate` vs `1.00%/Aggressive`) to Dana |
-| `Thompson` household (`Former` / `Churned`) left in 2023 and is winding down | Dana Ruiz (Slack Round 1) | `status_map:Former`, `status_map:Churned` | Map `Thompson Household` to `status = INACTIVE` |
-
-### How Rules Auto-Apply on Next Sync & Get Corrected When Stale
-- Every rule in [`outputs/knowledge_base.json`](outputs/knowledge_base.json) is keyed deterministically by `<rule_type>:<source_value>` with `version`, `active`, `scope` (`firm_specific` vs `global_reusable`), and `evidence`.
-- On subsequent syncs, Stage 1 (`src/mapper.py`) queries `kb.get_rule(rule_type, source_value)` before creating an `UnresolvedCase`. On Sync #1 (cold start), records require LLM resolution; on Sync #2 (warm `outputs/knowledge_base.json`), learned rules auto-apply in Stage 1, cutting unresolved LLM cases down to the genuinely ambiguous records awaiting Dana's Round 2 answers.
-- When a rule changes or is corrected by Dana in Round 2, `kb.upsert()` overwrites `<rule_type>:<source_value>`, increments `version`, and logs the transition in Logfire (`active=False` disables a stale rule immediately).
+- Dana's Round 2 answers are applied by upserting rules with provenance `human`; there is no answer-ingestion command yet.
+- The flag decision varies a little between live runs; a regression set of expected flag/no-flag cases would pin it down.
+- The stale-date cutoff in Stage 1 is the literal `2025-06-30`; it should be derived from the feed.

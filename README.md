@@ -1,90 +1,73 @@
-# Nevis Forward Deployed Engineer — Agentic Onboarding Pipeline
+# Nevis Onboarding Pipeline
 
-An agentic data-mapping pipeline built with **PydanticAI** (`openai:gpt-5.6-luna`) and **Pydantic Logfire** that ingests Beaconcrest Advisors' messy Notion CRM export, custodian positions Excel workbook, advisor roster, and Round 1 onboarding Slack thread, and produces:
+An agentic pipeline that maps Beaconcrest Advisors' Notion CRM export, custodian positions, advisor roster and Round 1 Slack thread into the Nevis canonical model. An LLM agent (PydanticAI, `openai:gpt-5.6-luna`, traced with Logfire) decides what it can resolve confidently and what is a blocker. Blockers are written to a ledger, and the Round 2 questions for Dana are marked out of that ledger.
 
-1. [`outputs/canonical_output.json`](outputs/canonical_output.json) — Validated mapped records across all 5 Nevis canonical entities (`advisors`, `households`, `clients`, `accounts`, `interactions`) carrying field-level provenance (`deterministic`, `slack_knowledge`, `llm`, `assumption`).
-2. [`outputs/clarifications_round2.md`](outputs/clarifications_round2.md) — The customer-facing Round 2 executive memorandum for Dana Ruiz (Head of Operations) with scoped questions, triggers, exact evidence, candidate options, and proposed defaults.
-3. [`outputs/blockers.md`](outputs/blockers.md) / `blockers.json` — The blocker ledger the resolver agent writes; the Round 2 memo is marked out of it.
-4. [`outputs/knowledge_base.json`](outputs/knowledge_base.json) — The persistent knowledge layer capturing stakeholder rules from Round 1 Slack and entity resolutions so future syncs apply them automatically.
-5. [`DESIGN.md`](DESIGN.md) — System architecture, data normalization details, trade-offs, and Slack business rules write-up.
+## What it produces
 
----
+| File | Contents |
+|---|---|
+| [`outputs/canonical_output.json`](outputs/canonical_output.json) | Records the system mapped confidently: advisors, households, clients, accounts, interactions, each value carrying provenance (`deterministic`, `slack_knowledge`, `llm`, `assumption`). |
+| [`outputs/clarifications_round2.md`](outputs/clarifications_round2.md) | The Round 2 message to Dana: one scoped question per decision with trigger, evidence, candidate options and a proposed default. Nothing Slack already settled is re-asked. |
+| [`outputs/blockers.md`](outputs/blockers.md) / [`blockers.json`](outputs/blockers.json) | The ledger the agent writes: every blocker it flagged (with the flag-matrix rule that justified it) and a list of cases it decided without flagging. |
+| [`outputs/knowledge_base.json`](outputs/knowledge_base.json) | Reusable business rules (from Slack and from agent resolutions) that apply automatically on the next sync. |
+| [`DESIGN.md`](DESIGN.md) | Design note, trade-offs and the Slack rules write-up. |
 
-## Repository Structure
+## Setup
 
-```
-Nevis/
-├── README.md                          # Setup, verification, and run guide
-├── DESIGN.md                          # Architecture, normalization, and Slack rules write-up
-├── main.py                            # Pipeline orchestrator and entry point
-├── pyproject.toml / requirements.txt  # Dependencies (PydanticAI, Logfire, Pandas, etc.)
-│
-├── outputs/                           # Committed deliverables produced by the run
-│   ├── canonical_output.json          # Validated canonical records with provenance
-│   ├── clarifications_round2.md       # Executive Round 2 memo for Dana Ruiz
-│   └── knowledge_base.json            # Versioned knowledge rules
-│
-├── src/                               # Modular pipeline engine
-│   ├── __init__.py
-│   ├── models.py                      # Canonical Pydantic schemas & provenance models
-│   ├── flag_matrix.py                 # Flag / don't-flag matrix given to the agent
-│   ├── blockers.py                    # Blocker ledger writer, holdout coverage, memo fact-check
-│   ├── knowledge.py                   # KnowledgeBase and KnowledgeRule store
-│   ├── mapper.py                      # Stage 1 deterministic mapping & unmapped detector
-│   ├── resolver.py                    # Stage 2 PydanticAI context builder & agent
-│   └── assembler.py                   # Stage 3 canonical assembly & post-mapping validator
-│
-├── reference/                         # Caches, specifications, and reference documents
-│   ├── llm_cache.json                 # Replay cache for offline zero-key evaluation
-│   ├── canonical_model_erd.png
-│   ├── Nevis - Canonical Data Model.pdf
-│   └── Nevis - Forward Deployed Engineer Home Task.pdf
-│
-├── notebooks/                         # Interactive EDA notebook
-│   └── exploration.ipynb              # EDA, categorical distributions, and note audits
-│
-└── sources/                           # Client raw input files
-    ├── advisor_roster.csv
-    ├── custodian_positions.xlsx
-    ├── ops_slack_thread.md
-    └── notion_export/
-```
-
----
-
-## Setup & Execution
-
-### 1. Environment & Dependencies
-Using `uv` (or the existing `.venv` virtual environment):
+Requires Python 3.11 and [`uv`](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
 ```
 
-### 2. Supply Your OpenAI API Key (Optional for Replay)
-Set `OPENAI_API_KEY` in your environment or in `.env.local`:
+Add an OpenAI key to `.env.local` (or export it):
 
 ```bash
-export OPENAI_API_KEY="sk-..."
+OPENAI_API_KEY=sk-...
 ```
 
-*(Optional: set `LOGFIRE_TOKEN` to stream OpenTelemetry traces to the Logfire cloud UI; console tracing works out of the box).*
+Optional: set `LOGFIRE_TOKEN` to send traces to Logfire. Console tracing works without it.
 
-### 3. Run the Pipeline End-to-End
+## Run
 
 ```bash
-.venv/bin/python main.py
+uv run python main.py
 ```
 
-- **Cold Start (first run)**: Delete `outputs/knowledge_base.json` (`rm -f outputs/knowledge_base.json && .venv/bin/python main.py`) to watch the PydanticAI agent extract all Round 1 Slack rules and Notion Markdown note links from scratch and populate `outputs/knowledge_base.json`.
-- **Warm Sync (subsequent runs)**: Run `.venv/bin/python main.py` again with `outputs/knowledge_base.json` present to see Stage 1 (`src/mapper.py`) automatically apply learned rules before invoking the LLM only on remaining unresolved items.
+This runs all four stages against the files in `sources/`, calls the live model, and overwrites the files in `outputs/` and the replay cache in `reference/llm_cache.json`. It takes a couple of minutes. The model is not deterministic, so a re-run can flag slightly differently. The committed outputs are one live run.
 
-### 4. Fallback Dry-Run Verification (Zero-Key Offline Mode)
-
-To verify the pipeline end-to-end without calling live LLM APIs or overwriting the committed model results:
+### Without an API key
 
 ```bash
-.venv/bin/python main.py --dry-run
+uv run python main.py --dry-run
 ```
 
-This replays cached model decisions from `reference/llm_cache.json`, validates all 5 canonical entities and 7 canonical rules in memory, writes outputs to `outputs/dry_run_canonical_output.json`, and leaves the committed deliverables untouched.
+Replays the cached model decisions from `reference/llm_cache.json`, re-runs the deterministic stages and all validations, and writes `outputs/dry_run_*` files. It leaves the committed deliverables untouched.
+
+## How it works
+
+1. **Deterministic pass** (`src/mapper.py`): normalizes dates, names and enums, applies knowledge-base rules, and lists candidate cases for the agent.
+2. **Agentic resolution** (`src/resolver.py`): the agent chooses auto-apply, collapse a duplicate, or flag, using the flag / don't-flag matrix in `src/flag_matrix.py`. A flag must carry a typed blocker.
+3. **Blocker ledger** (`src/blockers.py`): flagged blockers are written to `outputs/blockers.*`.
+4. **Assembly and validation** (`src/assembler.py`): builds the canonical records, applies each blocker's default action, converts currency, and asserts the 7 canonical rules. Any record held out without a blocker fails the run.
+5. **Round 2 memo** (`main.py`): grouped blockers become one decision each, and a fact-check verifies account IDs, custodians, amounts and option and default consistency against the source files.
+
+See [`DESIGN.md`](DESIGN.md) for the rules, trade-offs and how Slack answers are encoded.
+
+## Repository layout
+
+```
+main.py                 pipeline entry point
+src/
+  models.py             canonical schemas, provenance, Blocker, Holdout
+  flag_matrix.py        what to flag and what not to flag
+  mapper.py             stage 1
+  resolver.py           stage 2 agent
+  blockers.py           ledger writer, holdout coverage, memo fact-check
+  assembler.py          stage 3
+  knowledge.py          KnowledgeBase / KnowledgeRule store
+sources/                client inputs (Notion export, custodian xlsx, roster, Slack thread)
+outputs/                committed deliverables
+reference/              replay cache, task brief, canonical model
+notebooks/              exploratory analysis
+```
