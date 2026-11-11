@@ -1,0 +1,3302 @@
+{
+  "advisors": [
+    {
+      "advisor_id": "ADV-001",
+      "full_name": "Priya Raman",
+      "role": "Senior Advisor",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 0"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-002",
+      "full_name": "Marcus Webb",
+      "role": "Advisor",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 1"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-003",
+      "full_name": "Elena Sokolova",
+      "role": "Advisor",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 2"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-004",
+      "full_name": "James Okafor",
+      "role": "Relationship Manager",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 3"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-005",
+      "full_name": "Sofia Marchetti",
+      "role": "Advisor",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 4"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-006",
+      "full_name": "David Feldman",
+      "role": "Advisor",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 5"
+        }
+      ]
+    },
+    {
+      "advisor_id": "ADV-007",
+      "full_name": "Grace Bennett",
+      "role": "Relationship Manager",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "advisor_roster_exact",
+          "confidence": 1.0,
+          "evidence": "advisor_roster.csv row 6"
+        }
+      ]
+    }
+  ],
+  "households": [
+    {
+      "household_id": "hh_abramson",
+      "household_name": "Abramson Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 3200000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 4ba2faf6 (Daniel Abramson)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_al_rashid",
+      "household_name": "Al-Rashid Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 2025000.0,
+      "source_tags": [
+        "lineage:crm",
+        "lineage:custodian",
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 271b01a3 (Yusuf Al-Rashid)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "CRM identifies Yusuf Al-Rashid in Al-Rashid household with Marcus Webb as advisor. Slack confirms non-USD balances must be converted to USD at quarter-end; Q2 2025 EUR rate is 1.08 USD per EUR. The EUR 1,875,000 account therefore maps to USD 2,025,000. Preserve the Geneva/European-custodian and currency-conversion lineage."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_ashford",
+      "household_name": "Ashford Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": "2024-09-30",
+      "aum_usd": 1450000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e9d80995 (Oliver Ashford)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_bakker",
+      "household_name": "Bakker Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 420000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page dac7ee6c (Ingrid Bakker)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_bauer",
+      "household_name": "Bauer Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "PROSPECT",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 5b9ba881 (Klaus Bauer)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_bianchi",
+      "household_name": "Bianchi Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 2352000.0,
+      "source_tags": [
+        "lineage:notion_crm",
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 2f805d00 (Francesca Bianchi)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Francesca Bianchi has an exact CRM and custodian match. The custodian confirms CHF and the Q2 2025 FX rule is settled at 1.12 USD/CHF; 2,100,000 CHF converts to 2,352,000 USD. Sofia Marchetti is a roster advisor."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_brennan",
+      "household_name": "Brennan Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 2640000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 72314271 (Patrick Brennan)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_castellano",
+      "household_name": "Castellano Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 720000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 0a93010b (Roberto Castellano)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_chen",
+      "household_name": "Chen Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 3230700.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 47f0cf4d (Linda Chen)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_costa",
+      "household_name": "Costa Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "PROSPECT",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a73f38b6 (Miguel Costa)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_delacroix",
+      "household_name": "Delacroix Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1890000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 21acbebb (Camille Delacroix)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_fairbanks",
+      "household_name": "Fairbanks Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "PROSPECT",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 6111e159 (Susan Fairbanks)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_farouk",
+      "household_name": "Farouk Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1660000.0,
+      "source_tags": [
+        "segment:HNW",
+        "tag:Deceased"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a2dd7e0b (Omar Farouk)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Omar Farouk has an exact CRM/custodian match, Sofia Marchetti as advisor, and a 1,660,000 USD account. The Active CRM status conflicts with the Deceased tag and must not be silently normalized."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_ferreira",
+      "household_name": "Ferreira Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 445000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page d52dd965 (Paulo Ferreira)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_fitzgerald",
+      "household_name": "Fitzgerald Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 880000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f877c739 (William Fitzgerald)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_fournier",
+      "household_name": "Fournier Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page cc6fb217 (Isabelle Fournier)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_gomes",
+      "household_name": "Gomes Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 580000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 2606aae3 (Beatriz Gomes)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_haddad",
+      "household_name": "Haddad Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1220000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 568fb509 (Nadia Haddad)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_harrington",
+      "household_name": "Harrington Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1650000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page ca59a110 (Emily Harrington)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_iyer",
+      "household_name": "Iyer Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 2335000.0,
+      "source_tags": [
+        "segment:HNW",
+        "tag:VIP",
+        "tag:ESG"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f0d568a6 (Rajesh Iyer)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_johansson",
+      "household_name": "Johansson Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 2550000.0,
+      "source_tags": [
+        "segment:HNW",
+        "tag:VIP"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 64d8921e (Astrid Johansson)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_karimi",
+      "household_name": "Karimi Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1510000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 69c55a1d (Hassan Karimi)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_kowalski",
+      "household_name": "Kowalski Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 610000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b46b01f2 (Anna Kowalski)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_kruger",
+      "household_name": "Kruger Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1780000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page fdaa5c61 (Tobias Kruger)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_laurent",
+      "household_name": "Laurent Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 530000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 99068c0d (Sophie Laurent)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Sophie Laurent has a complete active CRM record, assigned roster advisor, exact custodian match, and a 530,000 USD individual account. The referral source Emily Harrington is business meaningful and preserved."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_lindgren",
+      "household_name": "Lindgren Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 675000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b7965487 (Sven Lindgren)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_lindholm",
+      "household_name": "Lindholm Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 385000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b97833e9 (Nora Lindholm)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_moreau",
+      "household_name": "Moreau Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 705000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page af8bbe74 (Clara Moreau)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_nakamura",
+      "household_name": "Nakamura Household",
+      "primary_advisor_id": "ADV-001",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 9110000.0,
+      "source_tags": [
+        "segment:Corporate"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f60fdd79 (Kenji Nakamura)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_nasser",
+      "household_name": "Nasser Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1340000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page c84bc4cb (Leila Nasser)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_nguyen",
+      "household_name": "Nguyen Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 385000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page c4075629 (Linh Nguyen)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_nwosu",
+      "household_name": "Nwosu Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "PROSPECT",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page dbbc233c (Amara Nwosu)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_okonkwo",
+      "household_name": "Okonkwo Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 5120000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f0165c95 (Ada Okonkwo)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_okoye",
+      "household_name": "Okoye Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 560000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 11dfcce7 (Chidi Okoye)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_osei",
+      "household_name": "Osei Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 730000.0,
+      "source_tags": [
+        "lineage:harborline",
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 74cdc707 (Adaeze Osei)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_park",
+      "household_name": "Park Household",
+      "primary_advisor_id": "ADV-002",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1850000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e3b11e70 (Jenny Park)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_petrov",
+      "household_name": "Petrov Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 445000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 00a00dae (Dmitri Petrov)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_reyes",
+      "household_name": "Reyes Household",
+      "primary_advisor_id": "ADV-006",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 640000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 96443805 (Fernando Reyes)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_rossi",
+      "household_name": "Rossi Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1470000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f718d8a6 (Giulia Rossi)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_sandberg",
+      "household_name": "Sandberg Household",
+      "primary_advisor_id": "ADV-003",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 615000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 9776221b (Viktor Sandberg)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_sorensen",
+      "household_name": "Sorensen Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1340000.0,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page ed084dce (Erik Sorensen)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_sullivan",
+      "household_name": "Sullivan Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 940000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page aa1edf11 (Megan Sullivan)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_tan",
+      "household_name": "Tan Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 495000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 32e22ca3 (Mei Lin Tan)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Mei Lin Tan has a complete active CRM record, assigned roster advisor, exact custodian match, and a 495,000 USD individual account. The email-only preference is business meaningful and should be preserved as a source tag."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_thompson",
+      "household_name": "Thompson Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "INACTIVE",
+      "as_of_date": "2023-09-30",
+      "aum_usd": 12400.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e0ea94ea (Bill Thompson)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_vargas",
+      "household_name": "Vargas Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "PROSPECT",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "segment:HNW"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b5056b6b (Diego Vargas)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_voss",
+      "household_name": "Voss Household",
+      "primary_advisor_id": "ADV-007",
+      "status": "ACTIVE",
+      "as_of_date": null,
+      "aum_usd": null,
+      "source_tags": [
+        "lineage:notion_crm",
+        "segment:HNW",
+        "tag:Held Away"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f91a0e32 (Gerald Voss)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.98,
+          "evidence": "Gerald Voss has a complete CRM record with an assigned roster advisor and household. Held Away is a meaningful business tag and should be preserved. No matching custodian account is supplied, so AUM is null rather than zero."
+        }
+      ]
+    },
+    {
+      "household_id": "hh_yamamoto",
+      "household_name": "Yamamoto Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 830000.0,
+      "source_tags": [
+        "segment:Mass Affluent"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 3a4b3637 (Hiroshi Yamamoto)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_zhang",
+      "household_name": "Zhang Household",
+      "primary_advisor_id": "ADV-004",
+      "status": "ACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1930000.0,
+      "source_tags": [
+        "segment:HNW",
+        "tag:Do Not Contact"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b669d445 (Wei Zhang)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Wei Zhang has a complete active CRM record, assigned roster advisor, exact custodian match, and a 1,930,000 USD individual account. The Do Not Contact restriction and quarterly review cadence are business meaningful and preserved."
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "client_id": "cli_4ba2faf6",
+      "household_id": "hh_abramson",
+      "first_name": "Daniel",
+      "last_name": "Abramson",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:0.85%",
+        "client_since:2014-04-18"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 4ba2faf6 (Daniel Abramson)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_9b089ad6",
+      "household_id": "hh_abramson",
+      "first_name": "Rachel",
+      "last_name": "Abramson",
+      "role": "SPOUSE",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.00%",
+        "client_since:2014-04-18"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 9b089ad6 (Rachel Abramson)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_271b01a3",
+      "household_id": "hh_al_rashid",
+      "first_name": "Yusuf",
+      "last_name": "Al-Rashid",
+      "role": "PRIMARY",
+      "source_tags": [
+        "lineage:crm",
+        "lineage:custodian",
+        "currency:EUR",
+        "fx_rate:EUR=1.08@2025-06-30",
+        "conversion:market_value_usd",
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:0.85%",
+        "client_since:2015-09-08"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 271b01a3 (Yusuf Al-Rashid)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "CRM identifies Yusuf Al-Rashid in Al-Rashid household with Marcus Webb as advisor. Slack confirms non-USD balances must be converted to USD at quarter-end; Q2 2025 EUR rate is 1.08 USD per EUR. The EUR 1,875,000 account therefore maps to USD 2,025,000. Preserve the Geneva/European-custodian and currency-conversion lineage."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_e9d80995",
+      "household_id": "hh_ashford",
+      "first_name": "Oliver",
+      "last_name": "Ashford",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2015-02-02"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e9d80995 (Oliver Ashford)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_dac7ee6c",
+      "household_id": "hh_bakker",
+      "first_name": "Ingrid",
+      "last_name": "Bakker",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Conservative",
+        "fee_schedule:0.85%",
+        "client_since:2022-07-30"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page dac7ee6c (Ingrid Bakker)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_5b9ba881",
+      "household_id": "hh_bauer",
+      "first_name": "Klaus",
+      "last_name": "Bauer",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "client_since:2025-05-20"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 5b9ba881 (Klaus Bauer)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_2f805d00",
+      "household_id": "hh_bianchi",
+      "first_name": "Francesca",
+      "last_name": "Bianchi",
+      "role": "PRIMARY",
+      "source_tags": [
+        "currency:CHF",
+        "fx:Q2-2025@1.12",
+        "lineage:notion_crm",
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.10%",
+        "client_since:2019-07-12"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 2f805d00 (Francesca Bianchi)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Francesca Bianchi has an exact CRM and custodian match. The custodian confirms CHF and the Q2 2025 FX rule is settled at 1.12 USD/CHF; 2,100,000 CHF converts to 2,352,000 USD. Sofia Marchetti is a roster advisor."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_72314271",
+      "household_id": "hh_brennan",
+      "first_name": "Patrick",
+      "last_name": "Brennan",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:1.10%",
+        "client_since:2016-11-05"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 72314271 (Patrick Brennan)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_0a93010b",
+      "household_id": "hh_castellano",
+      "first_name": "Roberto",
+      "last_name": "Castellano",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2020-06-15"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 0a93010b (Roberto Castellano)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_47f0cf4d",
+      "household_id": "hh_chen",
+      "first_name": "Linda",
+      "last_name": "Chen",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2016-03-11"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 47f0cf4d (Linda Chen)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_880f069d",
+      "household_id": "hh_chen",
+      "first_name": "Robert",
+      "last_name": "Chen",
+      "role": "SPOUSE",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Conservative",
+        "fee_schedule:1.00%",
+        "client_since:2016-03-11"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 880f069d (Robert Chen)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_a73f38b6",
+      "household_id": "hh_costa",
+      "first_name": "Miguel",
+      "last_name": "Costa",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "client_since:2025-06-01"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a73f38b6 (Miguel Costa)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_21acbebb",
+      "household_id": "hh_delacroix",
+      "first_name": "Camille",
+      "last_name": "Delacroix",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:Tier 1",
+        "client_since:2015-05-12"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 21acbebb (Camille Delacroix)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_6111e159",
+      "household_id": "hh_fairbanks",
+      "first_name": "Susan",
+      "last_name": "Fairbanks",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "client_since:2025-05-14"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 6111e159 (Susan Fairbanks)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_a2dd7e0b",
+      "household_id": "hh_farouk",
+      "first_name": "Omar",
+      "last_name": "Farouk",
+      "role": "PRIMARY",
+      "source_tags": [
+        "contradiction:status_active_vs_deceased",
+        "segment:HNW",
+        "risk_profile:Moderate",
+        "fee_schedule:Tier 1",
+        "client_since:2016-03-18",
+        "tag:Deceased"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a2dd7e0b (Omar Farouk)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Omar Farouk has an exact CRM/custodian match, Sofia Marchetti as advisor, and a 1,660,000 USD account. The Active CRM status conflicts with the Deceased tag and must not be silently normalized."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_d52dd965",
+      "household_id": "hh_ferreira",
+      "first_name": "Paulo",
+      "last_name": "Ferreira",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.10%",
+        "client_since:2022-09-01"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page d52dd965 (Paulo Ferreira)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f877c739",
+      "household_id": "hh_fitzgerald",
+      "first_name": "William",
+      "last_name": "Fitzgerald",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Conservative",
+        "fee_schedule:1.00%",
+        "client_since:2016-06-08"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f877c739 (William Fitzgerald)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_cc6fb217",
+      "household_id": "hh_fournier",
+      "first_name": "Isabelle",
+      "last_name": "Fournier",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Moderate",
+        "fee_schedule:1.10%",
+        "client_since:2017-03-09"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page cc6fb217 (Isabelle Fournier)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_2606aae3",
+      "household_id": "hh_gomes",
+      "first_name": "Beatriz",
+      "last_name": "Gomes",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:See LOE",
+        "client_since:2020-11-11"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 2606aae3 (Beatriz Gomes)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_568fb509",
+      "household_id": "hh_haddad",
+      "first_name": "Nadia",
+      "last_name": "Haddad",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:1.10%",
+        "client_since:2021-06-21",
+        "referred_by:Gregory Palme"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 568fb509 (Nadia Haddad)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_ca59a110",
+      "household_id": "hh_harrington",
+      "first_name": "Emily",
+      "last_name": "Harrington",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:1.00%",
+        "client_since:2018-02-10"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page ca59a110 (Emily Harrington)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f0d568a6",
+      "household_id": "hh_iyer",
+      "first_name": "Rajesh",
+      "last_name": "Iyer",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:1.10%",
+        "client_since:2016-04-26",
+        "tag:VIP",
+        "tag:ESG"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f0d568a6 (Rajesh Iyer)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_64d8921e",
+      "household_id": "hh_johansson",
+      "first_name": "Astrid",
+      "last_name": "Johansson",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:0.85% – negotiated",
+        "client_since:2016-09-20",
+        "tag:VIP"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 64d8921e (Astrid Johansson)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_69c55a1d",
+      "household_id": "hh_karimi",
+      "first_name": "Hassan",
+      "last_name": "Karimi",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Growth",
+        "fee_schedule:Tier 2",
+        "client_since:2017-02-27"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 69c55a1d (Hassan Karimi)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_b46b01f2",
+      "household_id": "hh_kowalski",
+      "first_name": "Anna",
+      "last_name": "Kowalski",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.00%",
+        "client_since:2021-01-30"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b46b01f2 (Anna Kowalski)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_fdaa5c61",
+      "household_id": "hh_kruger",
+      "first_name": "Tobias",
+      "last_name": "Kruger",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:Tier 1",
+        "client_since:2019-01-14",
+        "referred_by:Seminar 2023"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page fdaa5c61 (Tobias Kruger)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_99068c0d",
+      "household_id": "hh_laurent",
+      "first_name": "Sophie",
+      "last_name": "Laurent",
+      "role": "PRIMARY",
+      "source_tags": [
+        "referred_by:Emily Harrington",
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:Tier 1",
+        "client_since:2020-12-01",
+        "referred_by:Emily Harrington"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 99068c0d (Sophie Laurent)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Sophie Laurent has a complete active CRM record, assigned roster advisor, exact custodian match, and a 530,000 USD individual account. The referral source Emily Harrington is business meaningful and preserved."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_b7965487",
+      "household_id": "hh_lindgren",
+      "first_name": "Sven",
+      "last_name": "Lindgren",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.00%",
+        "client_since:2023-03-15"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b7965487 (Sven Lindgren)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_b97833e9",
+      "household_id": "hh_lindholm",
+      "first_name": "Nora",
+      "last_name": "Lindholm",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.00%",
+        "client_since:2023-08-03"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b97833e9 (Nora Lindholm)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_af8bbe74",
+      "household_id": "hh_moreau",
+      "first_name": "Clara",
+      "last_name": "Moreau",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Balanced",
+        "fee_schedule:1.10%",
+        "client_since:2019-10-22"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page af8bbe74 (Clara Moreau)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f60fdd79",
+      "household_id": "hh_nakamura",
+      "first_name": "Kenji",
+      "last_name": "Nakamura",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Corporate",
+        "risk_profile:Aggressive",
+        "fee_schedule:0.85%",
+        "client_since:2018-05-30"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f60fdd79 (Kenji Nakamura)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_c84bc4cb",
+      "household_id": "hh_nasser",
+      "first_name": "Leila",
+      "last_name": "Nasser",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2017-06-15"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page c84bc4cb (Leila Nasser)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_c4075629",
+      "household_id": "hh_nguyen",
+      "first_name": "Linh",
+      "last_name": "Nguyen",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:Tier 1",
+        "client_since:2019-03-22"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page c4075629 (Linh Nguyen)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_dbbc233c",
+      "household_id": "hh_nwosu",
+      "first_name": "Amara",
+      "last_name": "Nwosu",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "client_since:2025-05-19"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page dbbc233c (Amara Nwosu)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f0165c95",
+      "household_id": "hh_okonkwo",
+      "first_name": "Ada",
+      "last_name": "Okonkwo",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:Tier 1",
+        "client_since:2014-07-22"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f0165c95 (Ada Okonkwo)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_11dfcce7",
+      "household_id": "hh_okoye",
+      "first_name": "Chidi",
+      "last_name": "Okoye",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.10%",
+        "client_since:2019-08-27"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 11dfcce7 (Chidi Okoye)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_74cdc707",
+      "household_id": "hh_osei",
+      "first_name": "Adaeze",
+      "last_name": "Osei",
+      "role": "PRIMARY",
+      "source_tags": [
+        "lineage:harborline",
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.00%",
+        "client_since:2019-11-02"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 74cdc707 (Adaeze Osei)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_e3b11e70",
+      "household_id": "hh_park",
+      "first_name": "Jenny",
+      "last_name": "Park",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:0.85%",
+        "client_since:2017-11-28"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e3b11e70 (Jenny Park)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_00a00dae",
+      "household_id": "hh_petrov",
+      "first_name": "Dmitri",
+      "last_name": "Petrov",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.10%",
+        "client_since:2017-01-19"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 00a00dae (Dmitri Petrov)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_96443805",
+      "household_id": "hh_reyes",
+      "first_name": "Fernando",
+      "last_name": "Reyes",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:1.00%",
+        "client_since:2018-04-03"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 96443805 (Fernando Reyes)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f718d8a6",
+      "household_id": "hh_rossi",
+      "first_name": "Giulia",
+      "last_name": "Rossi",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Conservative",
+        "fee_schedule:1.00%",
+        "client_since:2016-02-14"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f718d8a6 (Giulia Rossi)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_9776221b",
+      "household_id": "hh_sandberg",
+      "first_name": "Viktor",
+      "last_name": "Sandberg",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Conservative",
+        "fee_schedule:1.00%",
+        "client_since:2018-01-08"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 9776221b (Viktor Sandberg)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_ed084dce",
+      "household_id": "hh_sorensen",
+      "first_name": "Erik",
+      "last_name": "Sorensen",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:0.85%",
+        "client_since:2017-07-19"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page ed084dce (Erik Sorensen)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_aa1edf11",
+      "household_id": "hh_sullivan",
+      "first_name": "Megan",
+      "last_name": "Sullivan",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2018-10-09"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page aa1edf11 (Megan Sullivan)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_6fb0ea7f",
+      "household_id": "hh_sullivan",
+      "first_name": "Tom",
+      "last_name": "Sullivan",
+      "role": "SPOUSE",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:Tier 1",
+        "client_since:2018-10-09"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 6fb0ea7f (Tom Sullivan)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_32e22ca3",
+      "household_id": "hh_tan",
+      "first_name": "Mei Lin",
+      "last_name": "Tan",
+      "role": "PRIMARY",
+      "source_tags": [
+        "contact_preference:email_only",
+        "segment:Mass Affluent",
+        "risk_profile:Conservative",
+        "fee_schedule:1.10%",
+        "client_since:2021-08-09"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 32e22ca3 (Mei Lin Tan)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Mei Lin Tan has a complete active CRM record, assigned roster advisor, exact custodian match, and a 495,000 USD individual account. The email-only preference is business meaningful and should be preserved as a source tag."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_e0ea94ea",
+      "household_id": "hh_thompson",
+      "first_name": "Bill",
+      "last_name": "Thompson",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:Tier 1",
+        "client_since:2013-04-27"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page e0ea94ea (Bill Thompson)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_4333491d",
+      "household_id": "hh_thompson",
+      "first_name": "Sarah",
+      "last_name": "Thompson",
+      "role": "SPOUSE",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.10%",
+        "client_since:2013-04-27"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 4333491d (Sarah Thompson)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_b5056b6b",
+      "household_id": "hh_vargas",
+      "first_name": "Diego",
+      "last_name": "Vargas",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:HNW",
+        "client_since:2025-06-02"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b5056b6b (Diego Vargas)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_f91a0e32",
+      "household_id": "hh_voss",
+      "first_name": "Gerald",
+      "last_name": "Voss",
+      "role": "PRIMARY",
+      "source_tags": [
+        "held_away",
+        "lineage:notion_crm",
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.00%",
+        "client_since:2016-10-04",
+        "tag:Held Away"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page f91a0e32 (Gerald Voss)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.98,
+          "evidence": "Gerald Voss has a complete CRM record with an assigned roster advisor and household. Held Away is a meaningful business tag and should be preserved. No matching custodian account is supplied, so AUM is null rather than zero."
+        }
+      ]
+    },
+    {
+      "client_id": "cli_3a4b3637",
+      "household_id": "hh_yamamoto",
+      "first_name": "Hiroshi",
+      "last_name": "Yamamoto",
+      "role": "PRIMARY",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:Tier 1",
+        "client_since:2020-12-03"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 3a4b3637 (Hiroshi Yamamoto)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_b669d445",
+      "household_id": "hh_zhang",
+      "first_name": "Wei",
+      "last_name": "Zhang",
+      "role": "PRIMARY",
+      "source_tags": [
+        "contact_restriction:do_not_contact",
+        "review_cadence:quarterly",
+        "segment:HNW",
+        "risk_profile:Aggressive",
+        "fee_schedule:1.00%",
+        "client_since:2015-05-06",
+        "tag:Do Not Contact"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page b669d445 (Wei Zhang)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Wei Zhang has a complete active CRM record, assigned roster advisor, exact custodian match, and a 1,930,000 USD individual account. The Do Not Contact restriction and quarterly review cadence are business meaningful and preserved."
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "account_id": "CU-5001",
+      "household_id": "hh_chen",
+      "account_type": "JOINT",
+      "market_value_usd": 2340500.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5001 (Bob & Linda Chen)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5002",
+      "household_id": "hh_chen",
+      "account_type": "IRA",
+      "market_value_usd": 890200.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5002 (Robert Chen)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5003",
+      "household_id": "hh_okonkwo",
+      "account_type": "TRUST",
+      "market_value_usd": 5120000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5003 (Ada Okonkwo Revocable Trust)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5006",
+      "household_id": "hh_nakamura",
+      "account_type": "CORPORATE",
+      "market_value_usd": 8900000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5006 (Nakamura Holdings LLC)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5011",
+      "household_id": "hh_nakamura",
+      "account_type": "IRA",
+      "market_value_usd": 210000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5011 (Nakamura, Kenji)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Nakamura, Kenji clearly matches Kenji Nakamura, whose primary advisor is Priya Raman (P. Raman). The IRA is identifiable as Kenji's personal IRA, but the CRM note and meeting explicitly say operations must decide whether it rolls up under the LLC household or is treated separately."
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5007",
+      "household_id": "hh_petrov",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 445000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5007 (Dmitri Petrov)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5008",
+      "household_id": "hh_al_rashid",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 2025000.0,
+      "currency_original": "EUR",
+      "as_of_date": "2025-06-30",
+      "custodian": "Lombard Intl",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5008 (Yusuf Al-Rashid)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-5009",
+      "household_id": "hh_thompson",
+      "account_type": "JOINT",
+      "market_value_usd": 12400.0,
+      "currency_original": "USD",
+      "as_of_date": "2023-09-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-5009 (Thompson Joint)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Thompson Joint maps to Thompson Household as a joint account for Bill and Sarah Thompson; Slack confirms Former/Churned means INACTIVE. The account valuation is stale as of 2023-09-30, so it cannot be trusted as the current balance."
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6001",
+      "household_id": "hh_harrington",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1650000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6001 (Emily Harrington)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6002",
+      "household_id": "hh_castellano",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 720000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6002 (Roberto Castellano)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6003",
+      "household_id": "hh_nguyen",
+      "account_type": "ROTH_IRA",
+      "market_value_usd": 385000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6003 (Linh Nguyen)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6004",
+      "household_id": "hh_brennan",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 2100000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6004 (Patrick Brennan)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6005",
+      "household_id": "hh_brennan",
+      "account_type": "IRA",
+      "market_value_usd": 540000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6005 (Patrick Brennan)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6006",
+      "household_id": "hh_kowalski",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 610000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Pershing",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6006 (Anna Kowalski)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6007",
+      "household_id": "hh_sorensen",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1340000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6007 (Erik Sorensen)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6008",
+      "household_id": "hh_delacroix",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1890000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6008 (Camille Delacroix)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6009",
+      "household_id": "hh_ferreira",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 445000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6009 (Paulo Ferreira)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6010",
+      "household_id": "hh_abramson",
+      "account_type": "JOINT",
+      "market_value_usd": 3200000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6010 (Rachel & Daniel Abramson)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6011",
+      "household_id": "hh_yamamoto",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 830000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Pershing",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6011 (Hiroshi Yamamoto)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6012",
+      "household_id": "hh_okoye",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 560000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6012 (Chidi Okoye)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6013",
+      "household_id": "hh_rossi",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1470000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6013 (Giulia Rossi)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6014",
+      "household_id": "hh_sullivan",
+      "account_type": "JOINT",
+      "market_value_usd": 940000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6014 (Megan & Tom Sullivan)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6015",
+      "household_id": "hh_haddad",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1220000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6015 (Nadia Haddad)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6016",
+      "household_id": "hh_lindgren",
+      "account_type": "TRUST",
+      "market_value_usd": 675000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6016 (Sven Lindgren)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6017",
+      "household_id": "hh_park",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1560000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6017 (Jenny Park)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6018",
+      "household_id": "hh_park",
+      "account_type": "ROTH_IRA",
+      "market_value_usd": 290000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6018 (Jenny Park)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6019",
+      "household_id": "hh_osei",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 730000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6019 (Adaeze Osei)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6022",
+      "household_id": "hh_bianchi",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 2352000.0,
+      "currency_original": "CHF",
+      "as_of_date": "2025-06-30",
+      "custodian": "Pictet",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6022 (Francesca Bianchi)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6023",
+      "household_id": "hh_fitzgerald",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 880000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6023 (Bill Fitzgerald)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6024",
+      "household_id": "hh_ashford",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1450000.0,
+      "currency_original": "USD",
+      "as_of_date": "2024-09-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6024 (Oliver Ashford)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Oliver Ashford exactly matches Ashford Household with Grace Bennett as advisor and an ACTIVE CRM status. The account is otherwise resolvable, but its latest supplied market value is stale as of 2024-09-30."
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6026",
+      "household_id": "hh_kruger",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1780000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6026 (Tobias Kruger)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6027",
+      "household_id": "hh_tan",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 495000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6027 (Mei Lin Tan)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6028",
+      "household_id": "hh_reyes",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 640000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6028 (Fernando Reyes)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6029",
+      "household_id": "hh_johansson",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 2240000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6029 (Astrid Johansson)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6030",
+      "household_id": "hh_johansson",
+      "account_type": "ROTH_IRA",
+      "market_value_usd": 310000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6030 (Astrid Johansson)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6031",
+      "household_id": "hh_karimi",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1510000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Pershing",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6031 (Hassan Karimi)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6032",
+      "household_id": "hh_gomes",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 580000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6032 (Beatriz Gomes)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6033",
+      "household_id": "hh_zhang",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1930000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6033 (Wei Zhang)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6034",
+      "household_id": "hh_bakker",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 420000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6034 (Ingrid Bakker)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6035",
+      "household_id": "hh_farouk",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1660000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6035 (Omar Farouk)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6036",
+      "household_id": "hh_moreau",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 705000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6036 (Clara Moreau)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6037",
+      "household_id": "hh_sandberg",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 615000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Pershing",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6037 (Viktor Sandberg)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6038",
+      "household_id": "hh_nasser",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1340000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6038 (Leila Nasser)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6039",
+      "household_id": "hh_laurent",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 530000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6039 (Sophie Laurent)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6040",
+      "household_id": "hh_iyer",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1875000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6040 (Rajesh Iyer)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6041",
+      "household_id": "hh_iyer",
+      "account_type": "IRA",
+      "market_value_usd": 460000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6041 (Rajesh Iyer)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6042",
+      "household_id": "hh_lindholm",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 385000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Fidelity",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6042 (Nora Lindholm)"
+        }
+      ]
+    }
+  ],
+  "interactions": [
+    {
+      "interaction_id": "int_07403e0a",
+      "household_id": "hh_johansson",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-03-15",
+      "advisor_id": "ADV-007",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 07403e0a (Annual Review — Johansson)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_2df618af",
+      "household_id": "hh_harrington",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-04-20",
+      "advisor_id": "ADV-001",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 2df618af (Check-in — Harrington)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_40eca5ea",
+      "household_id": "hh_bauer",
+      "interaction_type": "PROSPECTING",
+      "interaction_date": "2025-05-25",
+      "advisor_id": "ADV-006",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 40eca5ea (Discovery — Bauer)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_b1904208",
+      "household_id": "hh_costa",
+      "interaction_type": "PROSPECTING",
+      "interaction_date": "2025-06-05",
+      "advisor_id": "ADV-005",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting b1904208 (Intro Call — Costa)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_ea074021",
+      "household_id": "hh_fairbanks",
+      "interaction_type": "PROSPECTING",
+      "interaction_date": "2025-05-20",
+      "advisor_id": "ADV-004",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting ea074021 (Intro Call — Fairbanks)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_9ca85635",
+      "household_id": "hh_lindholm",
+      "interaction_type": "ONBOARDING",
+      "interaction_date": "2023-09-05",
+      "advisor_id": "ADV-001",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 9ca85635 (Onboarding — Lindholm)"
+        },
+        {
+          "source": "llm",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.94,
+          "evidence": "Nora Lindholm exactly matches Lindholm Household, and the CRM identifies Priya Raman as the primary advisor. The interaction is a valid onboarding meeting; the missing attendee is preserved as a source-quality tag rather than blocking the household roll-up."
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_842c7c08",
+      "household_id": "hh_okonkwo",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-05-03",
+      "advisor_id": "ADV-003",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 842c7c08 (Portfolio Review — Okonkwo)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_3e5f69e5",
+      "household_id": "hh_chen",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-01-15",
+      "advisor_id": "ADV-001",
+      "summary": "Quick portfolio check-in with Bob.",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 3e5f69e5 (Portfolio check-in — Bob Chen)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_057076d5",
+      "household_id": "hh_chen",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-06-12",
+      "advisor_id": "ADV-001",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 057076d5 (Q2 2025 Review — Chen)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_1c320b53",
+      "household_id": "hh_brennan",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-06-01",
+      "advisor_id": "ADV-002",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 1c320b53 (QBR — Brennan)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_b7a7d13d",
+      "household_id": "hh_al_rashid",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-05-28",
+      "advisor_id": "ADV-002",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting b7a7d13d (Review — Al-Rashid)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_00612eef",
+      "household_id": "hh_iyer",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-05-10",
+      "advisor_id": "ADV-007",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 00612eef (Review — Iyer)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_7fbe83c9",
+      "household_id": "hh_nakamura",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-04-30",
+      "advisor_id": null,
+      "summary": "Family still deciding whether Kenji's IRA sits under the LLC or on its own.",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 7fbe83c9 (Review — Nakamura)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_e9e3bc88",
+      "household_id": "hh_park",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-04-02",
+      "advisor_id": "ADV-002",
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting e9e3bc88 (Review — Park)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_1b4b5846",
+      "household_id": "hh_petrov",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-02-18",
+      "advisor_id": null,
+      "summary": null,
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 1b4b5846 (Review — Petrov)"
+        }
+      ]
+    },
+    {
+      "interaction_id": "int_0ec3b693",
+      "household_id": "hh_thompson",
+      "interaction_type": "REVIEW",
+      "interaction_date": "2025-05-15",
+      "advisor_id": "ADV-004",
+      "summary": "Discussed winding down, but they asked about possibly re-engaging next year.",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_meetings_md",
+          "confidence": 1.0,
+          "evidence": "Meeting 0ec3b693 (Review — Thompson)"
+        },
+        {
+          "source": "slack_knowledge",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "Bill Thompson maps to Thompson Household, whose primary advisor is James Okafor. Slack confirms the household is inactive while the final account is wound down. The interaction remains valid and rolls up to the existing inactive household; the note is preserved as business context."
+        }
+      ]
+    }
+  ]
+}
