@@ -116,6 +116,7 @@ resolution_agent = Agent(
     output_type=BatchResolutionOutput,
     name="nevis_ambiguity_resolver",
     defer_model_check=True,
+    retries=4,  # nested Blocker schema: let the model repair schema misses instead of failing the run
     instructions=(
         "You are a Forward Deployed Engineer agent mapping a wealth management firm's source data "
         "(Notion CRM exports + custodian positions spreadsheet + advisor roster) into the Nevis Canonical Data Model.\n\n"

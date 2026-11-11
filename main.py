@@ -27,6 +27,7 @@ clarification_synthesizer = Agent(
     output_type=SynthesizedClarifications,
     name="nevis_round2_clarification_writer",
     defer_model_check=True,
+    retries=4,
     instructions=(
         "You turn the blocker ledger into the Round 2 onboarding clarifications memo for RIA operations leadership (the Head of Operations).\n\n"
         "Input: the Round 1 Slack thread (already settled) and the blocker ledger: blockers the resolver agent flagged, each with a blocker_id, "

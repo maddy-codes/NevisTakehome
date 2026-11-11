@@ -80,17 +80,19 @@ class Blocker(BaseModel):
 
     blocker_id: str = ""  # assigned when written to the ledger
     case_id: str = ""  # assigned when written to the ledger
-    matrix_rule: FlagRule  # which flag-matrix rule (src/flag_matrix.py) justified flagging
-    category: str
-    trigger: str
-    evidence: str
-    candidate_options: list[str]
-    proposed_default: str
+    matrix_rule: FlagRule = Field(description="Flag-matrix rule id F1-F7 that justifies flagging this record.")
+    category: str = Field(description="Short label, e.g. 'Missing primary advisor'.")
+    trigger: str = Field(description="What triggered the flag, in one or two sentences.")
+    evidence: str = Field(description="Exact evidence: verbatim note quotes, Slack guidance, source values.")
+    candidate_options: list[str] = Field(description="2-3 options labelled 'Option A', 'Option B', 'Option C'.")
+    proposed_default: str = Field(description="The conservative default; must cite one option letter.")
     # Mechanical effect of proposed_default, applied by the assembler so output and memo cannot disagree:
     #   hold_out: keep the record out of canonical output; retain_and_tag: keep it with original values, tagged pending;
     #   set_inactive: household status INACTIVE, tagged pending.
-    default_action: Literal["hold_out", "retain_and_tag", "set_inactive"]
-    question_for_dana: str
+    default_action: Literal["hold_out", "retain_and_tag", "set_inactive"] = Field(
+        description="Mechanical effect of proposed_default: hold_out, retain_and_tag or set_inactive."
+    )
+    question_for_dana: str = Field(description="REQUIRED. The single scoped question Dana can answer in one line.")
     affected_entities: list[str] = Field(default_factory=list)  # account ids, client/household names, meeting names
     # Filled from the custodian feed when the ledger is written (facts only, never written by the LLM)
     account_facts: list[dict] = Field(default_factory=list)

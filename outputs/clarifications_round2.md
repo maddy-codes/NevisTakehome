@@ -6,65 +6,65 @@ Operational decisions and proposed defaults following Round 1 onboarding review.
 
 ### Operational Decisions Required
 
-### 1. Missing primary advisor — Which current roster advisor chosen by Dana should be primary for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado? For CU-5004, should the 2024-12-31 valuation remain held pending a refreshed quarter-end value?
+### 1. Missing primary advisor — Which current roster advisor should be the primary advisor for each of the Whitfield, Vandermeer, Petit, and Delgado households?
 
-- **Trigger**: Advisor is blank for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado; Service Rep A. Novak or Marcus Webb must not be treated as the primary advisor. Maria Delgado's CU-5004 also has a valuation older than the latest custodian quarter-end.
-- **Evidence**: George Whitfield / Whitfield / CU-5005: CRM note: "Another Harborline client. Anna was looking after him before she left the firm — needs reassigning to someone current." Joris Vandermeer / Vandermeer / CU-6021: no Advisor and no Service Rep in the CRM record. Louis Petit / Petit / CU-6020: CRM note: "Harborline book. Never got a proper advisor of record assigned." Maria Delgado / Delgado / CU-5004: CRM note: "Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned — should sort that out." The meeting attendee A. Novak was identified as a departed contractor and is not an advisor assignment. Account facts: CU-5005 is with Pershing at $670,000 as of 2025-06-30; CU-6021 is with Pershing at $1,620,000 as of 2025-06-30; CU-6020 is with Schwab at $540,000 as of 2025-06-30; CU-5004 is with Schwab at $1,240,000 as of 2024-12-31. Review — Delgado concerns the same Maria Delgado household and account treatment.
+- **Trigger**: The Advisor field is blank for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado; Service Rep entries are not the relationship advisor, and A. Novak is a departed contractor where noted.
+- **Evidence**: Affected entities: George Whitfield; Whitfield; CU-5005 — Pershing, $670,000, as of 2025-06-30. Joris Vandermeer; Vandermeer; CU-6021 — Pershing, $1,620,000, as of 2025-06-30. Louis Petit; Petit; CU-6020 — Schwab, $540,000, as of 2025-06-30. Maria Delgado; Delgado; CU-5004; Review — Delgado — Schwab, $1,240,000, as of 2024-12-31. Source notes include: “Another Harborline client. Anna was looking after him before she left the firm — needs reassigning to someone current.”; “Harborline book. Never got a proper advisor of record assigned.”; “Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned — should sort that out.”
 - **Candidate Options**:
-  - **Option A**: Assign current roster advisors chosen by Dana for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado; retain CU-5004's 2024-12-31 valuation pending a refreshed-valuation decision.
-  - **Option B**: Hold the affected households without primary advisors; hold Maria Delgado and CU-5004 pending the advisor and valuation decisions.
-  - **Option C**: Set the affected households inactive pending reassignment.
-- **Proposed Default**: **Option B: Hold the affected households without primary advisors; hold Maria Delgado and CU-5004 pending the advisor and valuation decisions.**
+  - **Option A**: Assign a current roster advisor chosen by Dana to each household.
+  - **Option B**: Keep each household unassigned pending Dana’s advisor assignment.
+  - **Option C**: Confirm another advisor assignment supplied by Dana for any household where applicable.
+- **Proposed Default**: **Option B — keep each household unassigned pending Dana’s advisor assignment.**
 
-### 2. Contradictory status — Should the Deceased tag take precedence and the Farouk Household be marked INACTIVE, or should Status remain Active?
+### 2. Active status conflicts with deceased tag — Should the Farouk household remain ACTIVE, be marked INACTIVE, or be held pending estate-status confirmation?
 
-- **Trigger**: CRM Status is Active while the source tag is Deceased.
-- **Evidence**: Omar Farouk / Farouk Household / CU-6035. The record has Status "Active" and Tags "Deceased". CU-6035 is with Schwab at $1,660,000 as of 2025-06-30. No Slack message addresses Omar Farouk or resolves this contradiction.
+- **Trigger**: Omar Farouk / Farouk Household is marked Active while carrying the tag “Deceased.”
+- **Evidence**: Omar Farouk; Farouk Household; CU-6035 — Schwab, $1,660,000, as of 2025-06-30. Status: “Active”; Tags: “Deceased”.
 - **Candidate Options**:
-  - **Option A**: Mark Omar Farouk and the Farouk Household INACTIVE and exclude CU-6035 from active AUM.
-  - **Option B**: Retain Active status pending confirmation.
-  - **Option C**: Hold the household and CU-6035 out of reporting pending determination.
-- **Proposed Default**: **Option A: Mark Omar Farouk and the Farouk Household INACTIVE and exclude CU-6035 from active AUM.**
+  - **Option A**: Mark the Farouk household INACTIVE based on the Deceased tag.
+  - **Option B**: Retain ACTIVE status pending Dana’s confirmation.
+  - **Option C**: Hold the household and account out of reporting pending confirmation.
+- **Proposed Default**: **Option C — hold the household and account out of reporting pending confirmation.**
 
-### 3. Pending household treatment — Should Kenji Nakamura's personal IRA, CU-5011, roll into the Nakamura Holdings LLC household or be reported in a separate personal household?
+### 3. Pending household decision — Should CU-5011 roll into the Nakamura household with the LLC, or be treated as Kenji’s separate personal account?
 
-- **Trigger**: The CRM note and meeting note state that the family is still deciding whether Kenji's personal IRA belongs under the LLC household or on its own.
-- **Evidence**: CU-5011 / Kenji Nakamura / Nakamura Holdings LLC / Nakamura. CRM note: "Not sure whether we report the IRA under the LLC household or treat it as his own — flag for ops." Meeting note: "Family still deciding whether Kenji's IRA sits under the LLC or on its own." CU-5011 is with Fidelity at $210,000 as of 2025-06-30.
+- **Trigger**: Operations has not decided whether Kenji’s personal IRA belongs under the LLC household or separately.
+- **Evidence**: CU-5011; Kenji Nakamura; Nakamura Holdings LLC; Nakamura. CU-5011 — Fidelity, $210,000, as of 2025-06-30. CRM note: “Not sure whether we report the IRA under the LLC household or treat it as his own — flag for ops.” Meeting note: “Family still deciding whether Kenji's IRA sits under the LLC or on its own.”
 - **Candidate Options**:
-  - **Option A**: Roll CU-5011 into the existing Nakamura household with Nakamura Holdings LLC.
-  - **Option B**: Create or use a separate personal household for Kenji Nakamura and roll CU-5011 there.
-  - **Option C**: Hold CU-5011 out of reporting until Dana confirms the reporting treatment.
-- **Proposed Default**: **Option C: Hold CU-5011 out of reporting until Dana confirms the reporting treatment.**
+  - **Option A**: Roll CU-5011 into the Nakamura household with Nakamura Holdings LLC.
+  - **Option B**: Create or use a separate personal household for Kenji’s IRA.
+  - **Option C**: Keep CU-5011 pending until the family decision is final.
+- **Proposed Default**: **Option C — hold the IRA out until the household treatment is confirmed.**
 
-### 4. Unmatched custodian account holders — Which existing CRM household and current primary advisor should own CU-5010 for Carlos Vasquez and CU-6025 for Priyanka Mehta?
+### 4. Unmatched custodian account holder — Which existing CRM household should receive custodian account CU-5010 for Carlos Vasquez and CU-6025 for Priyanka Mehta?
 
-- **Trigger**: Carlos Vasquez and Priyanka Mehta have no matching CRM client or household in the supplied context.
-- **Evidence**: CU-5010 / Carlos Vasquez: no matching CRM clients, notes, or meetings. CU-5010 is with Schwab at $980,000 as of 2025-06-30. CU-6025 / Priyanka Mehta: no matching CRM clients, notes, or meetings. CU-6025 is with Schwab at $670,000 as of 2025-06-30.
+- **Trigger**: Carlos Vasquez and Priyanka Mehta cannot be matched to a CRM client or household in the supplied context.
+- **Evidence**: CU-5010; Carlos Vasquez — Schwab, $980,000, as of 2025-06-30. CU-6025; Priyanka Mehta — Schwab, $670,000, as of 2025-06-30. For both accounts, matching CRM clients and notes and matching meetings were empty.
 - **Candidate Options**:
-  - **Option A**: Provide the existing CRM household that owns each account.
-  - **Option B**: Confirm that Carlos Vasquez and Priyanka Mehta are current clients and identify each household and current primary advisor from the current roster.
-  - **Option C**: Hold CU-5010 and CU-6025 out of reporting until existing-household matches are confirmed.
-- **Proposed Default**: **Option C: Hold CU-5010 and CU-6025 out of reporting until existing-household matches are confirmed.**
+  - **Option A**: Provide the existing CRM client or household for each account holder.
+  - **Option B**: Confirm the account holder is a new client and provide the household to use.
+  - **Option C**: Confirm the account should be excluded from reporting.
+- **Proposed Default**: **Option A — hold each account until Dana identifies the existing household.**
 
-### 5. Stale active-household valuation — Should CU-6024 be held out of active AUM until a valuation at the 2025-06-30 quarter-end or later is available?
+### 5. Stale active-household valuation — Should CU-6024’s 2024-09-30 market value be accepted, or should operations obtain a refreshed 2025-06-30 valuation?
 
-- **Trigger**: The active Ashford household's account valuation is dated 2024-09-30, older than the 2025-06-30 quarter-end in the custodian feed.
-- **Evidence**: Oliver Ashford / Ashford is marked Active. CU-6024 is with Fidelity at $1,450,000 as of 2024-09-30; the latest supplied custodian quarter-end is 2025-06-30.
+- **Trigger**: Oliver Ashford / Ashford is an active household, but CU-6024 is dated 2024-09-30 while the most recent supplied custodian quarter-end is 2025-06-30.
+- **Evidence**: Oliver Ashford; Ashford; CU-6024 — Fidelity, $1,450,000, as of 2024-09-30. Household status: Active. Supplied custodian records include As_Of_Date: 2025-06-30.
 - **Candidate Options**:
-  - **Option A**: Confirm that the 2024-09-30 market value remains acceptable for reporting.
-  - **Option B**: Retain CU-6024 with its original date and tag it pending a refreshed valuation.
-  - **Option C**: Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied.
-- **Proposed Default**: **Option C: Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied.**
+  - **Option A**: Accept the 2024-09-30 valuation for reporting.
+  - **Option B**: Obtain a refreshed 2025-06-30 valuation and replace the stale value.
+  - **Option C**: Keep the account pending until the valuation is refreshed or explicitly accepted.
+- **Proposed Default**: **Option C — retain the source value and date with a pending tag, but hold it from finalized AUM reporting.**
 
-### 6. Meeting client not in CRM — Does Redwood Capital correspond to an existing CRM household, or should this prospecting interaction remain outside reporting until the lead is onboarded?
+### 6. Meeting client not in CRM — Which existing or newly created CRM household should receive the Redwood Capital prospecting interaction?
 
-- **Trigger**: The prospecting meeting names Redwood Capital, but no existing CRM household matches it.
-- **Evidence**: Intro Call — Redwood Capital / Redwood Capital. Meeting note: "Referred lead — not in the CRM yet." There are no matching CRM clients or custodian accounts.
+- **Trigger**: The Redwood Capital prospecting meeting has no matching CRM client or household.
+- **Evidence**: interaction:02076175; Redwood Capital; Intro Call — Redwood Capital. Note: “Referred lead — not in the CRM yet.” Matching CRM clients and notes were empty.
 - **Candidate Options**:
-  - **Option A**: Provide an existing CRM household to which Redwood Capital's prospecting interaction belongs.
-  - **Option B**: Keep the interaction outside reporting until Redwood Capital is onboarded as an existing household.
-  - **Option C**: Create a new household from the prospecting meeting.
-- **Proposed Default**: **Option B: Keep the interaction outside reporting until Redwood Capital is onboarded as an existing household.**
+  - **Option A**: Add Redwood Capital to the CRM as a prospect household, then attach the interaction.
+  - **Option B**: Identify an existing CRM household that Redwood Capital represents.
+  - **Option C**: Exclude the interaction until a CRM household exists.
+- **Proposed Default**: **Option C — hold the interaction out rather than create a household from the meeting.**
 
 ---
 
