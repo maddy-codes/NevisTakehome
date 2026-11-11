@@ -58,4 +58,3 @@ Each rule is a `KnowledgeRule` in `outputs/knowledge_base.json`, keyed `<rule_ty
 
 - Dana's Round 2 answers are applied by upserting rules with provenance `human`; there is no answer-ingestion command yet.
 - The flag decision varies a little between live runs; a regression set of expected flag/no-flag cases would pin it down.
-- The stale-date cutoff in Stage 1 is the literal `2025-06-30`; it should be derived from the feed.
