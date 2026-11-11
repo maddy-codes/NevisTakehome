@@ -134,7 +134,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM, custodian, and meeting match for Yusuf Al-Rashid. CRM names Marcus Webb as Advisor; the EUR note is corroborated by custodian account CU-5008 dated 2025-06-30. Apply market value in USD through the quarter-end FX process; do not use cost basis."
+          "evidence": "Yusuf Al-Rashid has an exact CRM record, an exact custodian holder match, and a matching Review meeting attended by Marcus Webb. The account note says he is based in Geneva and held in euros; the account is dated 2025-06-30. EUR is converted to USD under the established quarter-end FX rule."
         }
       ]
     },
@@ -143,11 +143,10 @@
       "household_name": "Ashford Household",
       "primary_advisor_id": "ADV-007",
       "status": "ACTIVE",
-      "as_of_date": "2024-09-30",
-      "aum_usd": 1450000.0,
+      "as_of_date": null,
+      "aum_usd": null,
       "source_tags": [
-        "segment:HNW",
-        "pending:round2_stale_valuation"
+        "segment:HNW"
       ],
       "provenance": [
         {
@@ -217,7 +216,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Francesca Bianchi; Advisor Sofia Marchetti matches roster ADV-005. The note's “francs” and custodian Currency CHF identify the non-USD account; the assembler should convert it to USD at quarter-end. Market value is $2,100,000 CHF before conversion, dated 2025-06-30."
+          "evidence": "Exact CRM and custodian match for Francesca Bianchi; CU-6022 is a 2025-06-30 CHF individual account. Convert the CHF market value to USD using the quarter-end assembler rate. Preserve the meaningful Swiss custodian/francs note."
         }
       ]
     },
@@ -333,6 +332,33 @@
           "rule_or_model": "notion_clients_md",
           "confidence": 1.0,
           "evidence": "Clients page 6111e159 (Susan Fairbanks)"
+        }
+      ]
+    },
+    {
+      "household_id": "hh_farouk",
+      "household_name": "Farouk Household",
+      "primary_advisor_id": "ADV-005",
+      "status": "INACTIVE",
+      "as_of_date": "2025-06-30",
+      "aum_usd": 1660000.0,
+      "source_tags": [
+        "segment:HNW",
+        "tag:Deceased",
+        "pending:round2_deceased_status"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a2dd7e0b (Omar Farouk)"
+        },
+        {
+          "source": "assumption",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "CRM status is ACTIVE while the same record carries the tag \"Deceased.\" No Slack message settles how this specific deceased client should be represented. Account and advisor match exactly, but the status/tag contradiction requires an operations decision."
         }
       ]
     },
@@ -569,7 +595,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Sophie Laurent; Advisor James Okafor matches roster ADV-004. The referral note and Referred By value are business-meaningful and preserved."
+          "evidence": "Exact CRM and custodian match for Sophie Laurent; CU-6039 is a 2025-06-30 USD individual account. Preserve the referral note and referring person as meaningful source attributes."
         }
       ]
     },
@@ -918,7 +944,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Mei Lin Tan; Advisor Sofia Marchetti matches roster ADV-005. The note is a meaningful communication preference and should be preserved as a source tag."
+          "evidence": "Exact CRM and custodian match for Mei Lin Tan; CU-6027 is a 2025-06-30 USD individual account. Preserve the meaningful contact preference from the note."
         }
       ]
     },
@@ -983,7 +1009,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM client record supplies primary advisor Grace Bennett (ADV-007), and the account-holder context is unrelated to this client. The Held Away tag is business-meaningful and should be preserved; no custodian account is matched, so AUM is null rather than zero."
+          "evidence": "The CRM record has valid roster advisor Grace Bennett. Held Away is a meaningful source attribute, not a contradiction. No custodian account is supplied for Voss, so AUM is null rather than zero."
         }
       ]
     },
@@ -1028,7 +1054,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Wei Zhang; Advisor James Okafor matches roster ADV-004. “Do Not Contact” and the quarterly review note are business-meaningful and preserved."
+          "evidence": "Exact CRM and custodian match for Wei Zhang; CU-6033 is a 2025-06-30 USD individual account. Preserve the quarterly review note and Do Not Contact tag as meaningful source attributes."
         }
       ]
     }
@@ -1087,8 +1113,8 @@
         "risk_profile:Conservative",
         "fee_schedule:0.85%",
         "client_since:2015-09-08",
-        "service_note:Based in Geneva; custodian balance reported in EUR",
-        "currency_conversion:EUR to USD at quarter-end",
+        "source_note:Based in Geneva; account held with European custodian in euros",
+        "currency:EUR",
         "segment:HNW",
         "risk_profile:Conservative",
         "fee_schedule:0.85%",
@@ -1105,7 +1131,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM, custodian, and meeting match for Yusuf Al-Rashid. CRM names Marcus Webb as Advisor; the EUR note is corroborated by custodian account CU-5008 dated 2025-06-30. Apply market value in USD through the quarter-end FX process; do not use cost basis."
+          "evidence": "Yusuf Al-Rashid has an exact CRM record, an exact custodian holder match, and a matching Review meeting attended by Marcus Webb. The account note says he is based in Geneva and held in euros; the account is dated 2025-06-30. EUR is converted to USD under the established quarter-end FX rule."
         }
       ]
     },
@@ -1177,12 +1203,9 @@
       "last_name": "Bianchi",
       "role": "PRIMARY",
       "source_tags": [
-        "note:Based in Geneva; account held with a Swiss custodian in francs.",
+        "custodian:Pictet",
         "currency:CHF",
-        "fx_conversion:assembler quarter-end rate",
-        "segment:HNW",
-        "risk_profile:Aggressive",
-        "fee_schedule:1.10%",
+        "note:Swiss custodian; account held in francs",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.10%",
@@ -1199,7 +1222,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Francesca Bianchi; Advisor Sofia Marchetti matches roster ADV-005. The note's “francs” and custodian Currency CHF identify the non-USD account; the assembler should convert it to USD at quarter-end. Market value is $2,100,000 CHF before conversion, dated 2025-06-30."
+          "evidence": "Exact CRM and custodian match for Francesca Bianchi; CU-6022 is a 2025-06-30 CHF individual account. Convert the CHF market value to USD using the quarter-end assembler rate. Preserve the meaningful Swiss custodian/francs note."
         }
       ]
     },
@@ -1345,6 +1368,36 @@
           "rule_or_model": "notion_clients_md",
           "confidence": 1.0,
           "evidence": "Clients page 6111e159 (Susan Fairbanks)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_a2dd7e0b",
+      "household_id": "hh_farouk",
+      "first_name": "Omar",
+      "last_name": "Farouk",
+      "role": "PRIMARY",
+      "source_tags": [
+        "deceased",
+        "segment:HNW",
+        "risk_profile:Moderate",
+        "fee_schedule:Tier 1",
+        "client_since:2016-03-18",
+        "tag:Deceased",
+        "pending:round2_deceased_status"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page a2dd7e0b (Omar Farouk)"
+        },
+        {
+          "source": "assumption",
+          "rule_or_model": "nevis_ambiguity_resolver",
+          "confidence": 0.99,
+          "evidence": "CRM status is ACTIVE while the same record carries the tag \"Deceased.\" No Slack message settles how this specific deceased client should be represented. Account and advisor match exactly, but the status/tag contradiction requires an operations decision."
         }
       ]
     },
@@ -1591,11 +1644,8 @@
       "last_name": "Laurent",
       "role": "PRIMARY",
       "source_tags": [
-        "referral:Emily Harrington",
-        "note:Referred by an existing client.",
-        "segment:Mass Affluent",
-        "risk_profile:Aggressive",
-        "fee_schedule:Tier 1",
+        "referral:existing_client",
+        "referred_by:Emily Harrington",
         "segment:Mass Affluent",
         "risk_profile:Aggressive",
         "fee_schedule:Tier 1",
@@ -1613,7 +1663,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Sophie Laurent; Advisor James Okafor matches roster ADV-004. The referral note and Referred By value are business-meaningful and preserved."
+          "evidence": "Exact CRM and custodian match for Sophie Laurent; CU-6039 is a 2025-06-30 USD individual account. Preserve the referral note and referring person as meaningful source attributes."
         }
       ]
     },
@@ -2001,10 +2051,7 @@
       "last_name": "Tan",
       "role": "PRIMARY",
       "source_tags": [
-        "contact_preference:email only",
-        "segment:Mass Affluent",
-        "risk_profile:Conservative",
-        "fee_schedule:1.10%",
+        "contact_preference:email_only",
         "segment:Mass Affluent",
         "risk_profile:Conservative",
         "fee_schedule:1.10%",
@@ -2021,7 +2068,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Mei Lin Tan; Advisor Sofia Marchetti matches roster ADV-005. The note is a meaningful communication preference and should be preserved as a source tag."
+          "evidence": "Exact CRM and custodian match for Mei Lin Tan; CU-6027 is a 2025-06-30 USD individual account. Preserve the meaningful contact preference from the note."
         }
       ]
     },
@@ -2093,10 +2140,7 @@
       "last_name": "Voss",
       "role": "PRIMARY",
       "source_tags": [
-        "Held Away",
-        "segment:HNW",
-        "risk_profile:Aggressive",
-        "fee_schedule:1.00%",
+        "held_away",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.00%",
@@ -2114,7 +2158,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM client record supplies primary advisor Grace Bennett (ADV-007), and the account-holder context is unrelated to this client. The Held Away tag is business-meaningful and should be preserved; no custodian account is matched, so AUM is null rather than zero."
+          "evidence": "The CRM record has valid roster advisor Grace Bennett. Held Away is a meaningful source attribute, not a contradiction. No custodian account is supplied for Voss, so AUM is null rather than zero."
         }
       ]
     },
@@ -2146,11 +2190,8 @@
       "last_name": "Zhang",
       "role": "PRIMARY",
       "source_tags": [
-        "Do Not Contact",
-        "interaction_preference:quarterly portfolio review",
-        "segment:HNW",
-        "risk_profile:Aggressive",
-        "fee_schedule:1.00%",
+        "review_cadence:quarterly",
+        "do_not_contact",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.00%",
@@ -2168,7 +2209,7 @@
           "source": "deterministic",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Exact CRM and custodian-holder match for Wei Zhang; Advisor James Okafor matches roster ADV-004. “Do Not Contact” and the quarterly review note are business-meaningful and preserved."
+          "evidence": "Exact CRM and custodian match for Wei Zhang; CU-6033 is a 2025-06-30 USD individual account. Preserve the quarterly review note and Do Not Contact tag as meaningful source attributes."
         }
       ]
     }
@@ -2301,7 +2342,7 @@
           "source": "slack_knowledge",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Thompson Joint matches the Thompson household through Bill and Sarah Thompson. Slack explicitly directed that Thompson is INACTIVE and excluded from active AUM; the stale valuation therefore does not trigger the active-household stale valuation rule. Cost basis is ignored."
+          "evidence": "The established rule maps Thompson Joint to the Thompson household. Slack confirmed the Thompson household is Former/Churned and must be marked INACTIVE and excluded from active AUM. The stale valuation does not trigger F5 because the household is inactive. Cost Basis is ignored under the established rule."
         },
         {
           "source": "assumption",
@@ -2675,35 +2716,6 @@
       ]
     },
     {
-      "account_id": "CU-6024",
-      "household_id": "hh_ashford",
-      "account_type": "INDIVIDUAL",
-      "market_value_usd": 1450000.0,
-      "currency_original": "USD",
-      "as_of_date": "2024-09-30",
-      "custodian": "Fidelity",
-      "provenance": [
-        {
-          "source": "deterministic",
-          "rule_or_model": "custodian_positions_xlsx",
-          "confidence": 1.0,
-          "evidence": "Account CU-6024 (Oliver Ashford)"
-        },
-        {
-          "source": "deterministic",
-          "rule_or_model": "nevis_ambiguity_resolver",
-          "confidence": 0.99,
-          "evidence": "Oliver Ashford matches the active Ashford household and Grace Bennett. The account's $1,450,000 market value is dated 2024-09-30, older than the most recent custodian quarter-end, 2025-06-30. Slack did not settle stale active-household valuations."
-        },
-        {
-          "source": "assumption",
-          "rule_or_model": "stale_valuation_policy",
-          "confidence": 0.85,
-          "evidence": "Valuation is dated 2024-09-30 (older than 2025-06-30 quarter-end). Retained at its last reported balance and tagged pending:round2_stale_valuation until refreshed statements arrive."
-        }
-      ]
-    },
-    {
       "account_id": "CU-6026",
       "household_id": "hh_kruger",
       "account_type": "INDIVIDUAL",
@@ -2853,6 +2865,23 @@
           "rule_or_model": "custodian_positions_xlsx",
           "confidence": 1.0,
           "evidence": "Account CU-6034 (Ingrid Bakker)"
+        }
+      ]
+    },
+    {
+      "account_id": "CU-6035",
+      "household_id": "hh_farouk",
+      "account_type": "INDIVIDUAL",
+      "market_value_usd": 1660000.0,
+      "currency_original": "USD",
+      "as_of_date": "2025-06-30",
+      "custodian": "Schwab",
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "custodian_positions_xlsx",
+          "confidence": 1.0,
+          "evidence": "Account CU-6035 (Omar Farouk)"
         }
       ]
     },
@@ -3075,7 +3104,7 @@
           "source": "llm",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "Nora Lindholm matches the existing Lindholm Household and the supplied context identifies Priya Raman as household advisor. Missing meeting attendee does not prevent the interaction from rolling up to the existing household."
+          "evidence": "The meeting client Nora Lindholm exactly matches the active Lindholm Household and the existing account. A missing attendee does not prevent the interaction from rolling up to the existing household; no advisor is being inferred for the interaction."
         }
       ]
     },
@@ -3241,7 +3270,7 @@
           "source": "slack_knowledge",
           "rule_or_model": "nevis_ambiguity_resolver",
           "confidence": 0.99,
-          "evidence": "The meeting client label Thompson is resolved to the existing Bill Thompson/Thompson household. Slack confirmed Thompson is inactive and excluded from active AUM; the re-engagement note does not change that settled status."
+          "evidence": "The meeting client \"Thompson\" is covered by the established alias rule linking it to Bill Thompson and the Thompson household. Slack confirmed Thompson is inactive and should not count toward active AUM; the note about possible re-engagement does not override that settled status."
         }
       ]
     }
