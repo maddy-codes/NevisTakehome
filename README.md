@@ -9,6 +9,7 @@ An agentic pipeline that maps Beaconcrest Advisors' Notion CRM export, custodian
 | [`outputs/canonical_output.json`](outputs/canonical_output.json) | Records the system mapped confidently: advisors, households, clients, accounts, interactions, each value carrying provenance (`deterministic`, `slack_knowledge`, `llm`, `assumption`). |
 | [`outputs/clarifications_round2.md`](outputs/clarifications_round2.md) | The Round 2 message to Dana: one scoped question per decision with trigger, evidence, candidate options and a proposed default. Nothing Slack already settled is re-asked. |
 | [`outputs/blockers.md`](outputs/blockers.md) / [`blockers.json`](outputs/blockers.json) | The ledger the agent writes: every blocker it flagged (with the flag-matrix rule that justified it) and a list of cases it decided without flagging. |
+| [`outputs/field_dispositions.md`](outputs/field_dispositions.md) | Every source column and where it goes (mapped, normalized, preserved as a tag, agent-read, or dropped with a reason). |
 | [`outputs/knowledge_base.json`](outputs/knowledge_base.json) | Reusable business rules (from Slack and from agent resolutions) that apply automatically on the next sync. |
 | [`DESIGN.md`](DESIGN.md) | Design note, trade-offs and the Slack rules write-up. |
 
@@ -61,6 +62,7 @@ main.py                 pipeline entry point
 src/
   models.py             canonical schemas, provenance, Blocker, Holdout
   flag_matrix.py        what to flag and what not to flag
+  field_map.py          a disposition for every source column (fails on an unknown one)
   mapper.py             stage 1
   resolver.py           stage 2 agent
   blockers.py           ledger writer, holdout coverage, memo fact-check

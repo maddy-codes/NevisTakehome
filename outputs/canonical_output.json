@@ -4,6 +4,9 @@
       "advisor_id": "ADV-001",
       "full_name": "Priya Raman",
       "role": "Senior Advisor",
+      "source_tags": [
+        "office:San Francisco"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -17,6 +20,9 @@
       "advisor_id": "ADV-002",
       "full_name": "Marcus Webb",
       "role": "Advisor",
+      "source_tags": [
+        "office:Chicago"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -30,6 +36,9 @@
       "advisor_id": "ADV-003",
       "full_name": "Elena Sokolova",
       "role": "Advisor",
+      "source_tags": [
+        "office:Chicago"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -43,6 +52,9 @@
       "advisor_id": "ADV-004",
       "full_name": "James Okafor",
       "role": "Relationship Manager",
+      "source_tags": [
+        "office:New York"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -56,6 +68,9 @@
       "advisor_id": "ADV-005",
       "full_name": "Sofia Marchetti",
       "role": "Advisor",
+      "source_tags": [
+        "office:New York"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -69,6 +84,9 @@
       "advisor_id": "ADV-006",
       "full_name": "David Feldman",
       "role": "Advisor",
+      "source_tags": [
+        "office:Boston"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -82,6 +100,9 @@
       "advisor_id": "ADV-007",
       "full_name": "Grace Bennett",
       "role": "Relationship Manager",
+      "source_tags": [
+        "office:San Francisco"
+      ],
       "provenance": [
         {
           "source": "deterministic",
@@ -120,7 +141,6 @@
       "as_of_date": "2025-06-30",
       "aum_usd": 2197500.0,
       "source_tags": [
-        "segment:High Net Worth",
         "segment:HNW"
       ],
       "provenance": [
@@ -274,7 +294,7 @@
           "source": "deterministic",
           "rule_or_model": "notion_clients_md",
           "confidence": 1.0,
-          "evidence": "Clients page 47f0cf4d (Linda Chen)"
+          "evidence": "Clients page 880f069d (Robert Chen)"
         }
       ]
     },
@@ -1109,10 +1129,6 @@
       "last_name": "Al-Rashid",
       "role": "PRIMARY",
       "source_tags": [
-        "segment:High Net Worth",
-        "risk_profile:Conservative",
-        "fee_schedule:0.85%",
-        "client_since:2015-09-08",
         "source_note:Based in Geneva; account held with European custodian in euros",
         "currency:EUR",
         "segment:HNW",
@@ -1269,33 +1285,11 @@
       ]
     },
     {
-      "client_id": "cli_47f0cf4d",
-      "household_id": "hh_chen",
-      "first_name": "Linda",
-      "last_name": "Chen",
-      "role": "PRIMARY",
-      "source_tags": [
-        "segment:Mass Affluent",
-        "risk_profile:Moderate",
-        "fee_schedule:0.85%",
-        "client_since:2016-03-11",
-        "service_rep:Marcus Webb"
-      ],
-      "provenance": [
-        {
-          "source": "deterministic",
-          "rule_or_model": "notion_clients_md",
-          "confidence": 1.0,
-          "evidence": "Clients page 47f0cf4d (Linda Chen)"
-        }
-      ]
-    },
-    {
       "client_id": "cli_880f069d",
       "household_id": "hh_chen",
       "first_name": "Robert",
       "last_name": "Chen",
-      "role": "SPOUSE",
+      "role": "PRIMARY",
       "source_tags": [
         "segment:Mass Affluent",
         "risk_profile:Conservative",
@@ -1309,6 +1303,28 @@
           "rule_or_model": "notion_clients_md",
           "confidence": 1.0,
           "evidence": "Clients page 880f069d (Robert Chen)"
+        }
+      ]
+    },
+    {
+      "client_id": "cli_47f0cf4d",
+      "household_id": "hh_chen",
+      "first_name": "Linda",
+      "last_name": "Chen",
+      "role": "SPOUSE",
+      "source_tags": [
+        "segment:Mass Affluent",
+        "risk_profile:Moderate",
+        "fee_schedule:0.85%",
+        "client_since:2016-03-11",
+        "service_rep:Marcus Webb"
+      ],
+      "provenance": [
+        {
+          "source": "deterministic",
+          "rule_or_model": "notion_clients_md",
+          "confidence": 1.0,
+          "evidence": "Clients page 47f0cf4d (Linda Chen)"
         }
       ]
     },
@@ -1378,7 +1394,6 @@
       "last_name": "Farouk",
       "role": "PRIMARY",
       "source_tags": [
-        "deceased",
         "segment:HNW",
         "risk_profile:Moderate",
         "fee_schedule:Tier 1",
@@ -1645,7 +1660,6 @@
       "role": "PRIMARY",
       "source_tags": [
         "referral:existing_client",
-        "referred_by:Emily Harrington",
         "segment:Mass Affluent",
         "risk_profile:Aggressive",
         "fee_schedule:Tier 1",
@@ -2140,7 +2154,6 @@
       "last_name": "Voss",
       "role": "PRIMARY",
       "source_tags": [
-        "held_away",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.00%",
@@ -2191,7 +2204,6 @@
       "role": "PRIMARY",
       "source_tags": [
         "review_cadence:quarterly",
-        "do_not_contact",
         "segment:HNW",
         "risk_profile:Aggressive",
         "fee_schedule:1.00%",

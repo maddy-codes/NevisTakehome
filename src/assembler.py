@@ -50,6 +50,25 @@ def normalize_household_name(raw_hh: str | None, fallback_last_name: str) -> str
     return f"{base} Household"
 
 
+# Tag keys the assembler derives itself from CRM columns: one value each, the assembler's normalized value wins
+_SINGLE_VALUE_TAG_KEYS = ("segment", "risk_profile", "fee_schedule", "client_since", "referred_by")
+
+
+def _dedupe_tags(tags: list[str]) -> list[str]:
+    """Remove duplicates the agent and the assembler both emitted (e.g. segment:High Net Worth vs segment:HNW)."""
+    last_idx = {t.split(":", 1)[0]: i for i, t in enumerate(tags) if t.split(":", 1)[0] in _SINGLE_VALUE_TAG_KEYS}
+    kept = [t for i, t in enumerate(tags) if t.split(":", 1)[0] not in last_idx or last_idx[t.split(":", 1)[0]] == i]
+    # bare agent tags (held_away) that restate an explicit `tag:Held Away`
+    norm = lambda s: re.sub(r"[^a-z0-9]", "", s.lower())  # noqa: E731
+    explicit = {norm(t.split(":", 1)[1]) for t in kept if t.startswith("tag:")}
+    kept = [t for t in kept if ":" in t or norm(t) not in explicit]
+    out: list[str] = []
+    for t in kept:
+        if t not in out:
+            out.append(t)
+    return out
+
+
 def build_canonical_output(
     mapping_result: DeterministicMappingResult,
     resolutions: list[CaseResolution],
@@ -163,11 +182,12 @@ def build_canonical_output(
                 seg = "HNW" if raw_c["Segment"] == "High Net Worth" else raw_c["Segment"]
                 tags.append(f"segment:{seg}")
             if raw_c.get("Risk Profile"):
-                rp = "Moderate" if raw_c["Risk Profile"] == "3 - Moderate" else raw_c["Risk Profile"]
+                rp = re.sub(r"^\d+\s*-\s*", "", str(raw_c["Risk Profile"]).strip())  # "3 - Moderate" -> "Moderate"
                 tags.append(f"risk_profile:{rp}")
             if raw_c.get("Fee Schedule"):
-                fs = "Tier 1" if raw_c["Fee Schedule"] == "tier 1" else raw_c["Fee Schedule"]
-                tags.append(f"fee_schedule:{fs}")
+                fs = str(raw_c["Fee Schedule"]).strip()
+                tier = re.fullmatch(r"(?i)tier\s*(\d+)", fs)
+                tags.append(f"fee_schedule:{'Tier ' + tier.group(1) if tier else fs}")
             if raw_c.get("Client Since"):
                 iso_since = pd.to_datetime(raw_c["Client Since"], format="mixed").strftime("%Y-%m-%d")
                 tags.append(f"client_since:{iso_since}")
@@ -175,8 +195,8 @@ def build_canonical_output(
                 tags.append(f"referred_by:{raw_c['Referred By']}")
             if raw_c.get("Service Rep"):
                 rep = str(raw_c["Service Rep"]).strip()
-                if rep == "A. Novak":
-                    tags.append("service_rep:A. Novak (departed)")
+                if kb.get_rule("departed_staff", rep):  # departed per the knowledge base (Slack), not a hardcoded name
+                    tags.append(f"service_rep:{rep} (departed)")
                     tags.append("flag:departed_service_rep")
                 else:
                     tags.append(f"service_rep:{rep}")
@@ -185,6 +205,7 @@ def build_canonical_output(
                     tags.append(f"tag:{t}")
             if "Deceased" in raw_tags:
                 tags.append("pending:round2_deceased_status")
+            tags = _dedupe_tags(tags)
 
             prov = [
                 Provenance(
@@ -231,6 +252,14 @@ def build_canonical_output(
         print("  • Assembling 5 canonical entities enforcing Rules 1–7...")
 
         for hh_id, members in sorted(hh_groups.items()):
+            # The household anchor (the row that names the household, or that the agent marked PRIMARY) leads;
+            # the role fallback below would otherwise depend on CSV row order.
+            members.sort(
+                key=lambda m: (
+                    0 if (m["res"] and m["res"].resolved_client_role == "PRIMARY") else 1,
+                    0 if m["raw"].get("Household") else 1,
+                )
+            )
             hh_name = members[0]["hh_name"]
             adv_candidates = [m["adv_id"] for m in members if m["adv_id"]]
             primary_adv_id = adv_candidates[0] if adv_candidates else None

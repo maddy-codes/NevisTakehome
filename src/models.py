@@ -19,6 +19,7 @@ class Advisor(BaseModel):
     advisor_id: str
     full_name: str
     role: str
+    source_tags: list[str] = Field(default_factory=list)  # e.g. office:Chicago (roster column with no first-class home)
     provenance: list[Provenance] = Field(default_factory=list)
 
 

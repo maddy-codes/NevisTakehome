@@ -4,6 +4,7 @@ import logfire
 import pandas as pd
 from pydantic import BaseModel, Field
 
+from src.field_map import check_columns
 from src.knowledge import KnowledgeBase
 from src.models import (
     Advisor,
@@ -74,6 +75,12 @@ def run_deterministic_mapping(
             clients_df = parse_notion_folder(clients_dir)
             meetings_df = parse_notion_folder(meetings_dir)
 
+            # Rule 6: every source column must have a recorded disposition (see src/field_map.py)
+            check_columns("advisor_roster.csv", roster_df.columns)
+            check_columns("custodian_positions.xlsx", positions_df.columns)
+            check_columns("Notion clients", clients_df.columns)
+            check_columns("Notion meetings", meetings_df.columns)
+
         # 2. Map Advisors (100% deterministic from advisor_roster.csv)
         advisors: list[Advisor] = []
         advisor_by_name: dict[str, str] = {}
@@ -82,6 +89,7 @@ def run_deterministic_mapping(
                 advisor_id=row["advisor_id"],
                 full_name=row["full_name"],
                 role=row["role"],
+                source_tags=[f"office:{row['office']}"] if "office" in row and not pd.isna(row["office"]) else [],
                 provenance=[
                     Provenance(
                         source="deterministic",

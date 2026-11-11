@@ -9,6 +9,7 @@ from pydantic_ai import Agent
 
 from src.assembler import build_canonical_output
 from src.blockers import check_holdouts_covered, group_blockers, verify_memo_against_ledger, write_blocker_ledger
+from src.field_map import FIELD_MAP, write_markdown as write_field_dispositions
 from src.mapper import run_deterministic_mapping
 from src.models import ClarificationItem
 from src.resolver import resolve_unresolved_cases
@@ -127,6 +128,10 @@ def run_pipeline(
     with logfire.span("nevis_onboarding_pipeline", dry_run=dry_run) as root_span:
         # Stage 1: Deterministic & KnowledgeBase Pass
         mapping_result = run_deterministic_mapping(sources_dir=sources_dir, kb_path=kb_path)
+        write_field_dispositions()
+        n_cols = sum(len(c) for c in FIELD_MAP.values())
+        n_drop = sum(1 for c in FIELD_MAP.values() for d, _, _ in c.values() if d == "drop")
+        print(f"[Field Dispositions] {n_cols} source columns across {len(FIELD_MAP)} sources, all acknowledged ({n_drop} dropped with a reason) -> 'outputs/field_dispositions.md'")
 
         # Stage 2: Agentic Resolution of Unresolved Cases + Learning into KnowledgeBase
         resolutions, kb = resolve_unresolved_cases(
