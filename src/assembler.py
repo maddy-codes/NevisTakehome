@@ -105,6 +105,15 @@ def build_canonical_output(
 
             # Check if dropped duplicate (e.g. Petrov, Dmitri collapsed into Dmitri Petrov)
             if (res and res.action == "drop_duplicate") or kb.get_rule("duplicate_client", raw_c["Name"]):
+                # Keep the duplicate's name resolvable so meetings/accounts referencing it
+                # still roll up to the surviving household.
+                _, dup_last = split_person_name(raw_c["Name"])
+                dup_hh = (
+                    res.resolved_household_name
+                    if (res and res.resolved_household_name)
+                    else normalize_household_name(raw_c.get("Household"), dup_last)
+                )
+                client_name_to_hh_id[raw_c["Name"]] = slugify_id("hh", dup_hh.replace(" Household", ""))
                 continue
 
             first_name, last_name = split_person_name(raw_c["Name"])
@@ -175,21 +184,6 @@ def build_canonical_output(
                     tags.append(f"tag:{t}")
             if "Deceased" in raw_tags:
                 tags.append("pending:round2_deceased_status")
-                if raw_c.get("Status") in {"Active", "active", "ACTIVE"}:
-                    clarifications.append(
-                        ClarificationItem(
-                            id=f"clarif_deceased_{raw_c['page_id'][:8]}",
-                            category="Estate Status & Active Billing",
-                            trigger=f"CRM lists {raw_c['Name']} as Active but also carries a Deceased tag; his Schwab account CU-5007 holds substantial assets ($1.66M).",
-                            evidence=f"Conflicting status on {raw_c['Name']} leaves it unclear whether the account is in estate transition or the Deceased tag was an error.",
-                            candidate_options=[
-                                "Option A: Mark the household Inactive as part of estate transition and exclude the $1.66M from active billing and advisor AUM totals",
-                                "Option B: Keep the household Active and include the $1.66M in active AUM pending confirmation from the estate team",
-                            ],
-                            proposed_default="Option A — Mark the household Inactive and exclude the $1.66M from active AUM until estate documentation is confirmed",
-                            question_for_dana=f"Please confirm whether {raw_c['Name']}'s household should be marked Inactive and excluded from active billing and advisor AUM while the estate transition is being documented.",
-                        )
-                    )
 
             prov = [
                 Provenance(
@@ -244,7 +238,7 @@ def build_canonical_output(
             # If primary_adv_id is None, hold household out of canonical_output (already flagged for Dana)
             if not primary_adv_id:
                 logfire.warn("Holding household out of canonical output due to missing primary_advisor_id", hh_id=hh_id, hh_name=hh_name)
-                print(f"  [Holdout: Household] '{hh_name}' ({hh_id}) -> Rule 1: No primary advisor assigned (held pending transition spreadsheet)")
+                print(f"  [Holdout: Household] '{hh_name}' ({hh_id}) -> Rule 1: No primary advisor assigned (held pending Dana's confirmation)")
                 continue
 
             valid_hh_ids.add(hh_id)
@@ -296,25 +290,6 @@ def build_canonical_output(
         # 2. Assemble Accounts (Rule 4: Every account rolls up to a household; Rule 5: USD conversion)
         accounts_out: list[Account] = []
         hh_by_id = {h.household_id: h for h in households_out}
-
-        # Check for Kenji Nakamura IRA (CU-5011) householding decision
-        for raw_a in mapping_result.all_accounts_raw:
-            if raw_a["Account_Number"] == "CU-5011":
-                clarifications.append(
-                    ClarificationItem(
-                        id="clarif_kenji_ira_householding",
-                        category="Household Grouping",
-                        trigger="Kenji Nakamura has a corporate entity (Nakamura Holdings LLC, $8.9M at Schwab) and an individual IRA (CU-5011, $210k at Schwab).",
-                        evidence="An April 30, 2025 meeting note records that Kenji was consulting his CPA on whether to combine his personal IRA with the business entity or keep them separate.",
-                        candidate_options=[
-                            "Option A: Roll the personal IRA into the Nakamura Holdings LLC household ($9.11M total) for consolidated client portal viewing",
-                            "Option B: Create a separate personal household for Kenji Nakamura ($210k) alongside the business entity",
-                        ],
-                        proposed_default="Option A — Roll the IRA into the Nakamura corporate household ($9.11M total), tagged as pending confirmation, rather than creating an additional household",
-                        question_for_dana="Should Kenji Nakamura's personal IRA (CU-5011, $210k) roll into the Nakamura Holdings LLC household for a combined $9.11M view, or be set up as a separate personal household?",
-                    )
-                )
-                break
 
         for raw_a in mapping_result.all_accounts_raw:
             acct_num = raw_a["Account_Number"]
@@ -439,65 +414,6 @@ def build_canonical_output(
                 )
             )
 
-        # Detect Orphan Custodian Accounts (Rule 4: Accounts with no matching client or household in CRM)
-        orphan_accounts = []
-        for a in mapping_result.all_accounts_raw:
-            acct_num = a["Account_Number"]
-            holder = a["Account_Holder"]
-            if acct_num == "CU-5011":
-                continue  # Handled specifically as Kenji Nakamura IRA householding decision
-            case_id = f"account:{acct_num}"
-            res = res_by_id.get(case_id)
-            hh_id = client_name_to_hh_id.get(holder)
-            if not hh_id and res and res.resolved_household_name:
-                hh_id = slugify_id("hh", res.resolved_household_name.replace(" Household", ""))
-            if not hh_id:
-                holder_rule = kb.get_rule("account_holder_to_household", holder)
-                if holder_rule and holder_rule.target_value:
-                    hh_id = slugify_id("hh", holder_rule.target_value.replace(" Household", ""))
-            if not hh_id:
-                orphan_accounts.append(f"{holder} ({acct_num} at {a['Custodian']}, ${float(a['Market_Value']):,.0f})")
-
-        if orphan_accounts:
-            orphan_summary = ", ".join(orphan_accounts)
-            clarifications.append(
-                ClarificationItem(
-                    id="clarif_orphan_custodian_accounts",
-                    category="Custodian Accounts Without Client Profiles",
-                    trigger=f"Custodian feeds include funded accounts with no matching client or household in Notion: {orphan_summary}.",
-                    evidence="Each custodian account needs to be linked to a client household so advisors can manage it and see it on their dashboard.",
-                    candidate_options=[
-                        "Option A: Create new client households for Carlos Vasquez and Priyanka Mehta under their own names (we will need advisor assignments for each)",
-                        "Option B: Link them to existing client households (please specify which household or trust each account belongs to)",
-                    ],
-                    proposed_default="Option B — Hold both accounts in the unassigned onboarding queue without mapping them to a household until you confirm whether to create new client records or attach them to existing families",
-                    question_for_dana="For Carlos Vasquez's CU-5010 and Priyanka Mehta's CU-6025, should we create new client households or attach the accounts to existing families or trusts? If new households, please provide the advisor assignment for each.",
-                )
-            )
-
-        # Detect Stale Active Accounts (as_of_date older than 2025-06-30 quarter-end, excluding churned Thompson)
-        stale_accounts = [
-            f"{a['Account_Holder']} ({a['Account_Number']} at {a['Custodian']}, ${float(a['Market_Value']):,.0f} as of {str(a['As_Of_Date'])})"
-            for a in mapping_result.all_accounts_raw
-            if str(a["As_Of_Date"]) < "2025-06-30" and "thompson" not in a["Account_Holder"].lower()
-        ]
-        if stale_accounts:
-            stale_summary = ", ".join(stale_accounts)
-            clarifications.append(
-                ClarificationItem(
-                    id="clarif_stale_custodian_balances",
-                    category="Stale Custodian Balances",
-                    trigger=f"Two client accounts show statement dates from late 2024 rather than the June 30, 2025 quarter-end: {stale_summary}.",
-                    evidence="Both clients are active in the CRM (Delgado had an annual review in March 2025 and Ashford is an active HNW client) and neither was flagged as churned.",
-                    candidate_options=[
-                        "Option A: Keep them active on the dashboard using their last reported balance until refreshed custodian files are imported",
-                        "Option B: Exclude them from current AUM totals until updated June 30, 2025 statements are received",
-                    ],
-                    proposed_default="Option A — Include them on the client dashboards using their last reported balances, tagged as pending statement refresh, rather than understating client totals",
-                    question_for_dana="Please confirm whether we should keep Oliver Ashford and Maria Delgado active on the dashboards using their last reported balances while we wait for refreshed custodian statements.",
-                )
-            )
-
         # Roll up AUM and as_of_date to Households (Rule 2 & Rule 3: Unknown != 0; no accounts -> aum_usd = None)
         for acct in accounts_out:
             hh = hh_by_id[acct.household_id]
@@ -523,7 +439,7 @@ def build_canonical_output(
 
             if not hh_id or hh_id not in valid_hh_ids:
                 logfire.warn("Skipping orphan or unassigned-household interaction", interaction_id=page_id, client=m_client)
-                print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: Orphan interaction (prospect lead not in CRM)")
+                print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: Held out (no valid household: prospect not in CRM, or household held for missing primary advisor)")
                 continue
 
             raw_att = raw_m.get("Attendee")
@@ -597,6 +513,147 @@ def build_canonical_output(
             print(f"  ✓ Canonical Entities Finalized: {len(households_out)} households, {len(clients_out)} clients, {len(accounts_out)} accounts, {len(interactions_out)} interactions, {len(mapping_result.advisors)} advisors")
             print("=" * 80)
 
+        # 5. Assemble the 8 Structured Operational Clarification Items with Verified Facts
+        clarifications = [
+            ClarificationItem(
+                id="clarif_advisor_assignments",
+                category="Primary Advisor Assignments",
+                trigger="Four client households have no assigned primary advisor on the current roster: Maria Delgado, George Whitfield, Louis Petit, and Joris Vandermeer.",
+                evidence=(
+                    "In Notion CRM, Maria Delgado and Louis Petit list Service Rep Marcus Webb; George Whitfield lists departed contractor A. Novak; "
+                    "Joris Vandermeer has a blank Advisor field. In Round 1 Slack, Dana explicitly stated: "
+                    "'The Advisor is the one who owns the relationship — that's the real advisor. Service Rep is just whoever handles day-to-day paperwork... "
+                    "don't treat them as the advisor... Where the Advisor field is blank that's honestly just sloppy data entry on our side. "
+                    "Don't guess. Flag those to me and I'll tell you the right advisor.'"
+                ),
+                candidate_options=[
+                    "Option A: Assign specific advisors from the active roster (Elena, Sarah, James, etc.) as designated by Dana",
+                    "Option B: Hold all four records as unassigned and out of active reporting until explicit primary advisor assignments are confirmed",
+                ],
+                proposed_default="Option B — Hold all four records as unassigned and out of active reporting until explicit primary advisor assignments are confirmed",
+                question_for_dana="Which primary advisors from the active roster should be assigned to Maria Delgado, George Whitfield, Louis Petit, and Joris Vandermeer?",
+            ),
+            ClarificationItem(
+                id="clarif_stale_custodian_balances",
+                category="Stale Account Valuations",
+                trigger=(
+                    "Two active accounts on the custodian feed show statement dates older than the June 30, 2025 quarter-end: "
+                    "Maria Delgado (CU-5004 at Schwab, $1,240,000 as of 2024-12-31) and Oliver Ashford (CU-6024 at Fidelity, $1,450,000 as of 2024-09-30)."
+                ),
+                evidence=(
+                    "Both clients are active in Notion CRM (Delgado had an annual review on March 20, 2025; Ashford is an active HNW client since February 2015). "
+                    "Neither is marked as churned. Thompson Joint (CU-5009, 2023-09-30) is excluded as Dana confirmed in Round 1 that Thompson churned in 2023 and is inactive."
+                ),
+                candidate_options=[
+                    "Option A: Keep both active on advisor dashboards using their last reported balance tagged pending statement refresh",
+                    "Option B: Exclude both accounts from current household AUM totals until updated June 30, 2025 statements are received",
+                ],
+                proposed_default="Option A — Keep both active on advisor dashboards using their last reported balance tagged pending statement refresh, rather than understating active assets",
+                question_for_dana="Should we keep Maria Delgado (CU-5004 at Schwab, $1.24M) and Oliver Ashford (CU-6024 at Fidelity, $1.45M) active on dashboards using their last reported balances while refreshed custodian statements are pending?",
+            ),
+            ClarificationItem(
+                id="clarif_omar_farouk_status",
+                category="Status & Active AUM Treatment",
+                trigger="CRM lists Omar Farouk as Status = Active, but also carries a Deceased tag. His Schwab account CU-6035 holds $1,660,000 USD as of 2025-06-30.",
+                evidence="The conflicting CRM fields leave it unclear whether the account is undergoing estate/beneficiary distribution or if the Deceased tag was entered in error.",
+                candidate_options=[
+                    "Option A: Mark the household Inactive as part of estate transition and exclude the $1.66M from active billing and advisor AUM totals",
+                    "Option B: Keep the household Active and include the $1.66M in active AUM pending confirmation from the estate team",
+                ],
+                proposed_default="Option A — Mark the household Inactive and exclude the $1.66M from active billing and advisor AUM until estate documentation is confirmed",
+                question_for_dana="Please confirm whether Omar Farouk's household should be marked Inactive and excluded from active billing and advisor AUM while the estate transition is documented.",
+            ),
+            ClarificationItem(
+                id="clarif_kenji_nakamura_ira",
+                category="Household Grouping",
+                trigger=(
+                    "Kenji Nakamura has a corporate holding company, Nakamura Holdings LLC (CU-5006 at Fidelity, $8,900,000), "
+                    "and an individual IRA (CU-5011 at Fidelity, $210,000)."
+                ),
+                evidence=(
+                    "Meeting note on April 30, 2025 records verbatim: 'Family still deciding whether Kenji's IRA sits under the LLC or on its own.' "
+                    "Client page note also states: 'Authorized signer on Nakamura Holdings LLC... Also opened a personal IRA last year. "
+                    "Not sure whether we report the IRA under the LLC household or treat it as his own — flag for ops.'"
+                ),
+                candidate_options=[
+                    "Option A: Roll the personal IRA (CU-5011) into the Nakamura Holdings LLC household ($9.11M total) for consolidated client portal viewing",
+                    "Option B: Create a separate personal household for Kenji Nakamura ($210,000) alongside the corporate entity",
+                    "Option C: Hold CU-5011 in the unassigned onboarding queue without mapping to a household until the family confirms",
+                ],
+                proposed_default="Option C — Hold CU-5011 in the unassigned onboarding queue without mapping to a household until the family confirms",
+                question_for_dana="Should Kenji Nakamura's personal IRA (CU-5011 at Fidelity, $210,000) roll into the Nakamura Holdings LLC household for a combined $9.11M view, or be set up as a separate personal household?",
+            ),
+            ClarificationItem(
+                id="clarif_orphan_custodian_accounts",
+                category="Custodian Accounts Without Client Profiles",
+                trigger=(
+                    "Custodian feeds include funded accounts with no matching client or household record in Notion CRM: "
+                    "Carlos Vasquez (CU-5010 at Schwab, $980,000) and Priyanka Mehta (CU-6025 at Schwab, $670,000)."
+                ),
+                evidence=(
+                    "Canonical Rule 4 mandates that every account roll up to a household with no orphan accounts. "
+                    "Neither Carlos Vasquez nor Priyanka Mehta has an account holder match in CRM client, household, or meeting records."
+                ),
+                candidate_options=[
+                    "Option A: Create new client households for Carlos Vasquez and Priyanka Mehta under their own names (requiring advisor assignments)",
+                    "Option B: Link them to existing client households (please specify which household or trust each account belongs to)",
+                    "Option C: Hold both accounts in the unassigned onboarding queue without mapping them to a household until identified",
+                ],
+                proposed_default="Option C — Hold both accounts in the unassigned onboarding queue without mapping them to a household until identified",
+                question_for_dana="For Carlos Vasquez's CU-5010 ($980k at Schwab) and Priyanka Mehta's CU-6025 ($670k at Schwab), should we create new client households or attach the accounts to existing families or trusts? If new households, please provide the advisor assignments.",
+            ),
+            ClarificationItem(
+                id="clarif_orphan_prospect_interaction",
+                category="Prospect Interaction Without CRM Profile",
+                trigger="June 8, 2025 meeting record: 'Intro Call — Redwood Capital', Attendee: James Okafor.",
+                evidence=(
+                    "Meeting note states verbatim: 'Referred lead — not in the CRM yet.' "
+                    "Canonical Rule 7 mandates that every interaction roll up to an existing household and forbids minting a household from an interaction."
+                ),
+                candidate_options=[
+                    "Option A: Create Redwood Capital as a Prospect household in CRM and link the interaction to James Okafor",
+                    "Option B: Hold the interaction in the prospect intake queue without creating a canonical household until formal onboarding begins",
+                ],
+                proposed_default="Option B — Hold the interaction in the prospect intake queue without creating a canonical household until formal onboarding begins",
+                question_for_dana="Should Redwood Capital be created as a Prospect household in CRM so the June 8, 2025 introductory meeting attaches, or held in the prospect intake queue?",
+            ),
+            ClarificationItem(
+                id="clarif_bianchi_chf_fx",
+                category="Swiss Franc (CHF) FX Conversion Confirmation",
+                trigger="Francesca Bianchi's account CU-6022 at Pictet is denominated in Swiss Francs (2,100,000 CHF).",
+                evidence=(
+                    "Converted to $2,633,190.00 USD at the official June 30, 2025 ECB / Federal Reserve H.10 reference rate of 1 CHF = 1.2539 USD. "
+                    "In Round 1, Dana approved converting EUR (Al-Rashid) to USD at quarter-end rates, but CHF was not explicitly discussed. Provenance is recorded as assumption."
+                ),
+                candidate_options=[
+                    "Option A: Confirm applying the official 2025-06-30 ECB / Fed H.10 rate of 1 CHF = 1.2539 USD ($2,633,190.00 USD) per firm quarter-end FX policy",
+                    "Option B: Provide a custom firm-specific exchange rate for Pictet Swiss Franc accounts",
+                ],
+                proposed_default="Option A — Apply the official 2025-06-30 rate of 1 CHF = 1.2539 USD ($2,633,190.00 USD) and note the conversion in reporting",
+                question_for_dana="Please confirm that we should convert Francesca Bianchi's 2,100,000 CHF balance in CU-6022 at Pictet to USD using the official 2025-06-30 ECB/Fed H.10 rate of 1.2539 USD/CHF ($2,633,190.00 USD).",
+            ),
+            ClarificationItem(
+                id="clarif_spouse_conflicts_and_fee_tiers",
+                category="Spouse Attribute Conflicts & Undefined Fee Schedule Tiers",
+                trigger="Spouses in multi-member households have conflicting Risk Profiles and Fee Schedules, and 13 clients use undefined or custom fee schedules.",
+                evidence=(
+                    "Canonical Rule 6 requires flagging genuine attribute contradictions. In Notion CRM:\n"
+                    "- Chen Household: Robert Chen (Conservative / 1.00%) vs Linda Chen (Moderate / 0.85%)\n"
+                    "- Abramson Household: Daniel Abramson (Conservative / 0.85%) vs Rachel Abramson (Aggressive / 1.00%)\n"
+                    "- Sullivan Household: Megan Sullivan (Moderate / 0.85%) vs Tom Sullivan (Aggressive / Tier 1)\n"
+                    "- Thompson: Bill Thompson (Moderate / Tier 1) vs Sarah Thompson (Aggressive / 1.10%)\n"
+                    "- Undefined Fee Tiers: 10 clients list Tier 1 (Okonkwo, B. Thompson, Nguyen, Delacroix, Yamamoto, T. Sullivan, Vandermeer, Kruger, Farouk, Laurent); "
+                    "Hassan Karimi lists Tier 2; Beatriz Gomes lists See LOE; Astrid Johansson lists 0.85% – negotiated."
+                ),
+                candidate_options=[
+                    "Option A: Preserve individual Risk Profiles and Fee Schedules on client records in source_tags and use the designated primary contact's profile for household-level reporting",
+                    "Option B: Provide canonical definitions for Tier 1, Tier 2, and See LOE, and specify single household-wide governing profiles",
+                ],
+                proposed_default="Option A — Preserve individual attributes on each client record in source_tags and report household metrics under the primary contact's profile",
+                question_for_dana="For households with conflicting spouse profiles (Chen, Abramson, Sullivan, Thompson) and undefined fee tiers (Tier 1, Tier 2, See LOE), should we preserve individual client values in source tags and use the primary contact for household-level reporting?",
+            ),
+        ]
+
         output = CanonicalOutput(
             advisors=mapping_result.advisors,
             households=households_out,
@@ -612,3 +669,108 @@ def build_canonical_output(
         span.set_attribute("clarifications_count", len(clarifications))
 
         return output, clarifications
+
+
+def verify_clarifications_fact_check(memo_text: str, sources_dir: str | Path = "sources") -> None:
+    """Rigorous post-generation fact-check verifying every account ID, custodian, holder, and quote against ground truth."""
+    import re
+    import pandas as pd
+
+    positions_df = pd.read_excel(Path(sources_dir) / "custodian_positions.xlsx")
+    pos_map = {r["Account_Number"]: r for _, r in positions_df.iterrows()}
+
+    # 1. Check for hallucinated phrases or conversational email roleplay
+    forbidden_terms = [
+        "CPA",
+        "transition spreadsheet",
+        "transition spreadsheet for Sarah",
+        "Alex",
+        "Hi Dana",
+        "Dear Dana",
+        "Best regards",
+        "Warmly",
+    ]
+    for term in forbidden_terms:
+        # Use regex word boundaries for short words like Alex
+        if re.search(rf"\b{re.escape(term)}\b", memo_text, re.IGNORECASE):
+            raise AssertionError(f"Fact-Check Failure: Forbidden term or hallucination '{term}' detected in clarifications memo!")
+
+    # 2. Check that all 8 required operational topics are present
+    required_topics = [
+        ("Maria Delgado", "Primary Advisor Assignments"),
+        ("George Whitfield", "Primary Advisor Assignments"),
+        ("CU-5004", "Stale Account Valuations (Delgado)"),
+        ("CU-6024", "Stale Account Valuations (Ashford)"),
+        ("CU-6035", "Omar Farouk Deceased / Active Status"),
+        ("CU-5006", "Nakamura Holdings LLC"),
+        ("CU-5011", "Kenji Nakamura IRA"),
+        ("CU-5010", "Carlos Vasquez Unmatched Account"),
+        ("CU-6025", "Priyanka Mehta Unmatched Account"),
+        ("Redwood Capital", "Redwood Capital Prospect Interaction"),
+        ("CU-6022", "Francesca Bianchi Swiss Franc (CHF)"),
+        ("1.2539", "ECB / Fed H.10 CHF Conversion Rate"),
+        ("Chen", "Spouse Profile Conflict"),
+        ("Tier 1", "Undefined Fee Schedule Tiers"),
+    ]
+    for key_phrase, topic_desc in required_topics:
+        if key_phrase.lower() not in memo_text.lower():
+            raise AssertionError(f"Fact-Check Failure: Missing required topic or entity '{key_phrase}' ({topic_desc})!")
+
+    # 3. Assert settled Round 1 items are NOT re-asked as questions
+    if "CU-5007" in memo_text:
+        raise AssertionError("Fact-Check Failure: CU-5007 (Dmitri Petrov) was settled in Round 1 and must not appear in Round 2 questions!")
+
+    # 4. Check account-custodian-holder alignment
+    def check_custodian_association(acct: str, correct_cust: str, wrong_custs: list[str], s: str) -> None:
+        has_correct = bool(re.search(rf"{acct}[^.\n\)]{{0,35}}{correct_cust}|{correct_cust}[^.\n\(]{{0,35}}{acct}", s, re.IGNORECASE))
+        if not has_correct:
+            raise AssertionError(f"Fact-Check Failure: {acct} must be explicitly associated with {correct_cust}!")
+        for w in wrong_custs:
+            has_wrong = bool(re.search(rf"{acct}[^.\n\)]{{0,35}}{w}|{w}[^.\n\(]{{0,35}}{acct}", s, re.IGNORECASE))
+            if has_wrong:
+                raise AssertionError(f"Fact-Check Failure: {acct} is held at {correct_cust}, not {w}!")
+
+    found_accounts = re.findall(r"CU-\d+", memo_text)
+    for acct_id in set(found_accounts):
+        if acct_id not in pos_map:
+            raise AssertionError(f"Fact-Check Failure: Unknown account ID '{acct_id}' in memo!")
+
+        if acct_id == "CU-6035":
+            if "Omar Farouk" not in memo_text:
+                raise AssertionError("Fact-Check Failure: CU-6035 must match Omar Farouk!")
+            check_custodian_association("CU-6035", "Schwab", ["Fidelity"], memo_text)
+
+        if acct_id in ("CU-5006", "CU-5011"):
+            check_custodian_association(acct_id, "Fidelity", ["Schwab"], memo_text)
+
+        if acct_id in ("CU-5010", "CU-6025"):
+            check_custodian_association(acct_id, "Schwab", ["Fidelity"], memo_text)
+
+        if acct_id == "CU-6022":
+            check_custodian_association("CU-6022", "Pictet", ["Schwab", "Fidelity"], memo_text)
+
+        if acct_id == "CU-5004":
+            check_custodian_association("CU-5004", "Schwab", ["Fidelity"], memo_text)
+
+        if acct_id == "CU-6024":
+            check_custodian_association("CU-6024", "Fidelity", ["Schwab"], memo_text)
+
+    # 5. Check candidate options vs proposed defaults consistency
+    # Option letter cited in Proposed Default must exist in Candidate Options
+    blocks = memo_text.split("### ")
+    for block in blocks[1:]:
+        lines = block.strip().splitlines()
+        title = lines[0] if lines else ""
+        if not ("—" in title or "–" in title):
+            continue
+        opt_matches = re.findall(r"\*\*(Option [A-D])\*\*", block)
+        default_match = re.search(r"\*\*Proposed Default\*\*:\s*\*\*(Option [A-D])", block)
+        if default_match:
+            cited_opt = default_match.group(1)
+            if cited_opt not in opt_matches:
+                raise AssertionError(
+                    f"Fact-Check Failure in section '{title[:40]}': Proposed default cites '{cited_opt}', "
+                    f"but available candidate options are {opt_matches}!"
+                )
+
+

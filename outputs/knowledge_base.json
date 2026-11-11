@@ -46,7 +46,7 @@
       "target_value": "Thompson",
       "extra_tags": [],
       "provenance_source": "llm",
-      "evidence": "CRM note says Bill has a joint account with his wife Sarah, matching the Thompson Joint custodian holder.",
+      "evidence": "Bill Thompson's CRM note identifies a joint account with Sarah Thompson, matching the custodian holder.",
       "version": 1,
       "active": true
     },
@@ -58,7 +58,7 @@
       "target_value": "1 CHF = 1.2539 USD",
       "extra_tags": [],
       "provenance_source": "assumption",
-      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to Bianchi account CU-6022; Dana did not explicitly discuss this CHF account.",
+      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to CU-6022.",
       "version": 1,
       "active": true
     },
@@ -214,7 +214,7 @@
       "target_value": "1 EUR = 1.1720 USD",
       "extra_tags": [],
       "provenance_source": "slack_knowledge",
-      "evidence": "Dana explicitly instructed that Yusuf Al-Rashid's EUR account be converted to USD using the normal quarter-end FX policy.",
+      "evidence": "Dana explicitly directed that Al-Rashid's EUR account be converted to USD using the quarter-end FX policy.",
       "version": 1,
       "active": true
     },
@@ -370,7 +370,7 @@
       "target_value": "Bill Thompson",
       "extra_tags": [],
       "provenance_source": "llm",
-      "evidence": "The interaction labeled Thompson exactly matches the existing Review — Thompson record whose CRM client is Bill Thompson in the Thompson household.",
+      "evidence": "The interaction labeled Thompson matches the existing Review — Thompson record whose CRM client is Bill Thompson in the Thompson household.",
       "version": 1,
       "active": true
     },
@@ -394,7 +394,7 @@
       "target_value": "Tan Household",
       "extra_tags": [],
       "provenance_source": "llm",
-      "evidence": "Exact CRM and custodian account-holder match.",
+      "evidence": "Exact CRM and custodian holder match links Mei Lin Tan to Tan Household.",
       "version": 1,
       "active": true
     },
@@ -406,7 +406,19 @@
       "target_value": "Laurent Household",
       "extra_tags": [],
       "provenance_source": "llm",
-      "evidence": "Exact CRM and custodian account-holder match.",
+      "evidence": "Exact CRM and custodian holder match links Sophie Laurent to Laurent Household.",
+      "version": 1,
+      "active": true
+    },
+    "account_holder_to_household:Wei Zhang": {
+      "rule_id": "account_holder_to_household:Wei Zhang",
+      "rule_type": "account_holder_to_household",
+      "scope": "firm_specific",
+      "source_value": "Wei Zhang",
+      "target_value": "Zhang Household",
+      "extra_tags": [],
+      "provenance_source": "llm",
+      "evidence": "Exact CRM and custodian holder match links Wei Zhang to Zhang Household.",
       "version": 1,
       "active": true
     }

@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 HouseholdStatus = Literal["ACTIVE", "INACTIVE", "PROSPECT"]
@@ -62,6 +62,14 @@ class Interaction(BaseModel):
     advisor_id: str | None = None
     summary: str | None = None
     provenance: list[Provenance] = Field(default_factory=list)
+
+
+class RawAnomalySignal(BaseModel):
+    signal_id: str
+    anomaly_type: str
+    affected_entities: list[str]
+    facts: dict[str, Any]
+    source_evidence: list[str] = Field(default_factory=list)
 
 
 class ClarificationItem(BaseModel):
