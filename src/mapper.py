@@ -4,8 +4,8 @@ import logfire
 import pandas as pd
 from pydantic import BaseModel, Field
 
-from knowledge import KnowledgeBase
-from models import (
+from src.knowledge import KnowledgeBase
+from src.models import (
     Advisor,
     Provenance,
 )
@@ -326,6 +326,14 @@ def run_deterministic_mapping(
             unresolved_cases=len(unresolved_cases),
             kb_applied_count=kb_applied_count,
         )
+
+        print("\n" + "=" * 80)
+        print("[Stage 1: Deterministic & Knowledge-Base Pass]")
+        print(f"  • Raw sources loaded: {len(clients_records)} clients, {len(positions_records)} accounts, {len(meetings_records)} meetings, {len(advisors)} advisors")
+        print(f"  • Knowledge Base: {len(kb.rules)} active rules ({kb_applied_count} applied in this pass)")
+        print(f"  • Deterministically matched: {len(clean_clients)} clients, {len(clean_accounts)} accounts, {len(clean_interactions)} meetings")
+        print(f"  • Flagged for agentic resolution: {len(unresolved_cases)} cases")
+        print("=" * 80)
 
         return DeterministicMappingResult(
             advisors=advisors,

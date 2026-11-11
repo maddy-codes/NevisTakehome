@@ -6,6 +6,16 @@ dist/
 wheels/
 *.egg-info
 
-# Virtual environments
+# Virtual environments & local env
 .venv
 .env.local
+.env
+
+# OS & Office metadata
+.DS_Store
+._*
+Thumbs.db
+~$*
+
+# Dry run test outputs
+outputs/dry_run_*

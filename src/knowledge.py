@@ -3,7 +3,7 @@ from typing import Literal
 import logfire
 from pydantic import BaseModel, Field
 
-from models import ProvenanceSource
+from src.models import ProvenanceSource
 
 
 RuleType = Literal[

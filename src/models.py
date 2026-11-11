@@ -5,7 +5,7 @@ HouseholdStatus = Literal["ACTIVE", "INACTIVE", "PROSPECT"]
 ClientRole = Literal["PRIMARY", "SPOUSE", "DEPENDENT", "SIGNER", "OTHER"]
 AccountType = Literal["INDIVIDUAL", "JOINT", "TRUST", "IRA", "ROTH_IRA", "CORPORATE", "OTHER"]
 InteractionType = Literal["REVIEW", "PROSPECTING", "ONBOARDING", "OTHER"]
-ProvenanceSource = Literal["deterministic", "slack_knowledge", "llm", "human"]
+ProvenanceSource = Literal["deterministic", "slack_knowledge", "llm", "assumption", "human"]
 
 
 class Provenance(BaseModel):
