@@ -16,6 +16,7 @@ Code does what is checkable; an LLM does the judgment.
 - No hardcoded answers: the memo can only contain what the blocker ledger contains.
 - Output and memo share one `default_action`, so they cannot disagree.
 - Flag only what Slack did not settle; dumping everything into flags is wrong (Rule 6).
+- Validation repairs, never aborts: dropped memo facts are restored from the ledger, a failed case becomes a flag, an unexplained hold-out gets a validator blocker.
 - Live runs vary slightly; `--dry-run` replays `reference/llm_cache.json`.
 
 ## (b) Slack rules: encoding and correction

@@ -8,7 +8,14 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 
 from src.assembler import build_canonical_output
-from src.blockers import check_holdouts_covered, group_blockers, verify_memo_against_ledger, write_blocker_ledger
+from src.blockers import (
+    backfill_uncovered_holdouts,
+    fallback_items,
+    group_blockers,
+    repair_items,
+    verify_memo_against_ledger,
+    write_blocker_ledger,
+)
 from src.field_map import FIELD_MAP, write_markdown as write_field_dispositions
 from src.mapper import run_deterministic_mapping
 from src.models import ClarificationItem
@@ -153,7 +160,12 @@ def run_pipeline(
             resolutions=resolutions,
             kb=kb,
         )
-        check_holdouts_covered(holdouts, blockers)
+        extra_blockers = backfill_uncovered_holdouts(holdouts, blockers)
+        if extra_blockers:
+            print(f"  ! {len(extra_blockers)} held-out record(s) had no agent blocker; added to the ledger by validation.")
+            blockers = write_blocker_ledger(
+                resolutions, json_path=blockers_json_path, md_path=blockers_md_path, extra_blockers=extra_blockers
+            )
         print(f"  ✓ Every held-out record ({len(holdouts)}) is explained by a blocker in the ledger.")
         groups = group_blockers(blockers)
 
@@ -172,15 +184,26 @@ def run_pipeline(
             print("\n" + "=" * 80)
             print("[Stage 4: Synthesize Round 2 Clarifications]")
             print(f"  • Marking out the memo from {len(blockers)} blocker(s) in the ledger")
+            synth_output: SynthesizedClarifications | None = None
+            formatted_memo = ""
+
+            def _try(items: list[ClarificationItem]) -> str | None:
+                """Repair missing ledger facts, format, and fact-check. Returns the memo, or None if it still fails."""
+                nonlocal synth_output
+                fixed = repair_items(items, blockers)
+                memo = format_executive_clarifications_markdown("", fixed)
+                verify_memo_against_ledger(memo, fixed, blockers, sources_dir=sources_dir)
+                synth_output = SynthesizedClarifications(markdown_message_to_dana="", items=fixed)
+                return memo
+
             if not has_api_key and cache_data.get("stage_4_clarifications"):
                 print("  • Offline mode: Replaying cached Stage 4 clarifications from 'reference/llm_cache.json'")
                 logfire.info("Replaying cached Stage 4 clarifications from llm_cache.json (offline / dry-run)")
-                synth_output = SynthesizedClarifications.model_validate(cache_data["stage_4_clarifications"])
-                formatted_memo = format_executive_clarifications_markdown(
-                    synth_output.markdown_message_to_dana,
-                    synth_output.items,
-                )
-                verify_memo_against_ledger(formatted_memo, synth_output.items, blockers, sources_dir=sources_dir)
+                cached = SynthesizedClarifications.model_validate(cache_data["stage_4_clarifications"])
+                try:
+                    formatted_memo = _try(cached.items) or ""
+                except AssertionError as err:
+                    print(f"  ! Cached memo no longer matches the ledger ({err}); rebuilding it from the ledger.")
             else:
                 print("  • Synthesizing executive questions using PydanticAI (openai:gpt-5.6-luna)... ", end="", flush=True)
                 slack_text = (Path(sources_dir) / "ops_slack_thread.md").read_text(encoding="utf-8")
@@ -197,23 +220,22 @@ def run_pipeline(
 
                 max_attempts = 3
                 for attempt in range(max_attempts):
-                    synth_res = clarification_synthesizer.run_sync(prompt)
-                    synth_output = synth_res.output
-                    formatted_memo = format_executive_clarifications_markdown(
-                        synth_output.markdown_message_to_dana,
-                        synth_output.items,
-                    )
                     try:
-                        verify_memo_against_ledger(formatted_memo, synth_output.items, blockers, sources_dir=sources_dir)
+                        written = clarification_synthesizer.run_sync(prompt).output
+                        formatted_memo = _try(written.items) or ""
                         break
-                    except AssertionError as err:
-                        if attempt == max_attempts - 1:
-                            raise
-                        print(f"\n  [Fact-Check Warning: {err}. Retrying synthesis with stricter prompt...]")
-                        prompt += f"\n\nERROR IN PREVIOUS ATTEMPT: {err}. Please correct this immediately."
-
+                    except Exception as err:  # fact-check failure, schema failure or API error: retry, never abort
+                        print(f"\n  [Memo attempt {attempt + 1}/{max_attempts} rejected: {str(err)[:140]}]")
+                        prompt += f"\n\nERROR IN PREVIOUS ATTEMPT: {str(err)[:300]}. Correct this."
                 print("Done.")
-                print("  ✓ Rigorous post-synthesis fact-check passed: every blocker covered; account IDs, custodians and amounts verified against the custodian feed.")
+
+            if synth_output is None:
+                print("  ! The writer's memo could not be validated; building it directly from the blocker ledger.")
+                formatted_memo = _try(fallback_items(blockers)) or ""
+            if synth_output is None:  # the ledger-built memo is checked too; this would be a bug, not an LLM miss
+                raise RuntimeError("Memo built from the blocker ledger failed its own fact-check")
+            print("  ✓ Fact-check passed: every blocker covered; account IDs, custodians and amounts verified against the custodian feed.")
+            if has_api_key:
                 cache_data["stage_4_clarifications"] = synth_output.model_dump()
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(json.dumps(cache_data, indent=2), encoding="utf-8")

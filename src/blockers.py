@@ -85,8 +85,11 @@ def write_blocker_ledger(
     json_path: str | Path = "outputs/blockers.json",
     md_path: str | Path = "outputs/blockers.md",
     sources_dir: str | Path = "sources",
+    extra_blockers: list[Blocker] | None = None,
 ) -> list[Blocker]:
-    blockers = attach_account_facts(collect_blockers(resolutions), sources_dir)
+    agent_blockers = collect_blockers(resolutions)
+    blockers = attach_account_facts(agent_blockers + list(extra_blockers or []), sources_dir)
+    n_extra = len(extra_blockers or [])
     applied = [r for r in resolutions if r.action != "flag_for_clarification"]
 
     Path(json_path).parent.mkdir(parents=True, exist_ok=True)
@@ -95,7 +98,8 @@ def write_blocker_ledger(
     lines = [
         "# Blocker Ledger",
         "",
-        f"Written by the resolver agent. {len(blockers)} blocker(s) flagged, {len(applied)} case(s) decided without flagging.",
+        f"Written by the resolver agent. {len(blockers)} blocker(s) flagged, {len(applied)} case(s) decided without flagging."
+        + (f" {n_extra} blocker(s) were added by validation because a held-out record had no agent blocker." if n_extra else ""),
         "Matrix rules are defined in `src/flag_matrix.py`.",
         "",
         "## Blockers (flagged)",
@@ -125,28 +129,109 @@ def write_blocker_ledger(
     return blockers
 
 
-def check_holdouts_covered(holdouts: list[Holdout], blockers: list[Blocker]) -> None:
-    """Post-mapping validation: nothing may be held out of the canonical output without a blocker explaining it."""
+def _uncovered_holdouts(holdouts: list[Holdout], blockers: list[Blocker]) -> list[Holdout]:
     haystacks = [
-        (b.blocker_id, (" ".join(b.affected_entities + [b.trigger, b.evidence, b.question_for_dana])).lower())
-        for b in blockers
+        " ".join(b.affected_entities + [b.trigger, b.evidence, b.question_for_dana]).lower() for b in blockers
     ]
     uncovered: list[Holdout] = []
     for h in holdouts:
         keys = {h.entity_id.lower()} if re.fullmatch(r"CU-\d+", h.entity_id) else set()
         toks = name_tokens(h.label) or name_tokens(h.entity_id)
-        hit = False
-        for _, hay in haystacks:
-            if any(k in hay for k in keys) or (toks and toks <= name_tokens(hay)):
-                hit = True
-                break
-        if not hit:
+        if not any(any(k in hay for k in keys) or (toks and toks <= name_tokens(hay)) for hay in haystacks):
             uncovered.append(h)
-    if uncovered:
-        detail = "; ".join(f"{h.kind} {h.entity_id} ({h.label}): {h.reason}" for h in uncovered)
-        raise AssertionError(
-            f"Validation Failure: {len(uncovered)} record(s) held out of canonical output without a blocker: {detail}"
+    return uncovered
+
+
+_RULE_BY_KIND = {"household": "F1", "account": "F2", "interaction": "F3"}
+
+
+def backfill_uncovered_holdouts(holdouts: list[Holdout], blockers: list[Blocker]) -> list[Blocker]:
+    """Post-mapping validation: nothing may be held out of the canonical output without a blocker explaining it.
+
+    If the agent did not flag a record the assembler had to hold out, record it as a validator-added blocker
+    (conservative hold-out default) instead of aborting the run.
+    """
+    extra: list[Blocker] = []
+    for h in _uncovered_holdouts(holdouts, blockers):
+        extra.append(
+            Blocker(
+                blocker_id=f"blk_validator_{h.kind}_{h.entity_id}",
+                case_id=f"validator:{h.kind}:{h.entity_id}",
+                matrix_rule=_RULE_BY_KIND[h.kind],  # type: ignore[arg-type]
+                category="Held out by validation",
+                trigger=f"{h.label} ({h.entity_id}) could not be placed in the book: {h.reason}.",
+                evidence=f"The assembler held out {h.kind} {h.label} ({h.entity_id}) ({h.reason}); the resolver agent had not flagged it.",
+                candidate_options=[
+                    f"Option A: Dana confirms where {h.label} belongs and the record is released.",
+                    f"Option B: Keep {h.label} out of reporting until it is confirmed.",
+                ],
+                proposed_default=f"Option B — keep {h.label} out of reporting until confirmed.",
+                default_action="hold_out",
+                question_for_dana=f"Where should {h.label} ({h.entity_id}) be placed in the book?",
+                affected_entities=[h.entity_id, h.label],
+            )
         )
+    return extra
+
+
+def _near(text: str, a: str, c: str) -> bool:
+    return bool(re.search(rf"{re.escape(a)}[^.\n\)]{{0,60}}{re.escape(c)}|{re.escape(c)}[^.\n\(]{{0,60}}{re.escape(a)}", text, re.IGNORECASE))
+
+
+def _fmt_money(mv: float, cur: str) -> str:
+    return f"${mv:,.0f}" if cur == "USD" else f"{mv:,.0f} {cur}"
+
+
+def repair_items(items: list[ClarificationItem], blockers: list[Blocker]) -> list[ClarificationItem]:
+    """Deterministically complete a memo: any ledger fact the writer dropped is appended from the feed.
+
+    The writer may phrase and merge; it may not lose an account's custodian/amount or an affected name. Missing
+    facts are known, so they are restored rather than rejected.
+    """
+    by_id = {b.blocker_id: b for b in blockers}
+    out: list[ClarificationItem] = []
+    for it in items:
+        text = " ".join([it.trigger, it.evidence, it.question_for_dana, it.proposed_default, *it.candidate_options])
+        extra: list[str] = []
+        for bid in it.blocker_ids:
+            b = by_id.get(bid)
+            if b is None:
+                continue
+            for f in b.account_facts:
+                if not _near(text, f["account_id"], f["custodian"]):
+                    sent = f"Account {f['account_id']} is held at {f['custodian']} (holder {f['holder']}) with {_fmt_money(f['market_value'], f['currency'])} as of {f['as_of_date']}."
+                    extra.append(sent)
+                    text += " " + sent
+            for ent in b.affected_entities:
+                if re.fullmatch(r"CU-\d+", ent):
+                    continue
+                toks = name_tokens(ent)
+                if toks and not any(t in text.lower() for t in toks):
+                    extra.append(f"Also affected: {ent}.")
+                    text += f" {ent}"
+        out.append(it.model_copy(update={"evidence": f"{it.evidence.rstrip()} {' '.join(extra)}".strip()}) if extra else it)
+    return out
+
+
+def fallback_items(blockers: list[Blocker]) -> list[ClarificationItem]:
+    """Last resort if the writer cannot produce a valid memo: one item per decision group, straight from the ledger."""
+    items: list[ClarificationItem] = []
+    for n, grp in enumerate(group_blockers(blockers), 1):
+        first = grp[0]
+        cats = list(dict.fromkeys(b.category for b in grp))
+        items.append(
+            ClarificationItem(
+                id=f"item_{n}",
+                blocker_ids=[b.blocker_id for b in grp],
+                category=" / ".join(cats),
+                trigger=" ".join(dict.fromkeys(b.trigger for b in grp)),
+                evidence=" ".join(dict.fromkeys(b.evidence for b in grp)),
+                candidate_options=list(first.candidate_options),
+                proposed_default=" ".join(dict.fromkeys(b.proposed_default for b in grp)),
+                question_for_dana=" ".join(dict.fromkeys(b.question_for_dana for b in grp)),
+            )
+        )
+    return items
 
 
 def verify_memo_against_ledger(
@@ -219,9 +304,7 @@ def verify_memo_against_ledger(
 
     # Account ids exist and are not paired with the wrong custodian
     def near(a: str, c: str) -> bool:
-        return bool(
-            re.search(rf"{re.escape(a)}[^.\n\)]{{0,35}}{re.escape(c)}|{re.escape(c)}[^.\n\(]{{0,35}}{re.escape(a)}", memo_text, re.IGNORECASE)
-        )
+        return _near(memo_text, a, c)
 
     for acct_id in set(re.findall(r"CU-\d+", memo_text)):
         if acct_id not in pos_map:

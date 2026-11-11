@@ -464,7 +464,8 @@ def build_canonical_output(
                 if alias_rule and alias_rule.target_value:
                     hh_id = client_name_to_hh_id.get(alias_rule.target_value)
 
-            if not hh_id or hh_id not in valid_hh_ids:
+            agent_hold_meeting = bool(res and res.blocker and res.blocker.default_action == "hold_out")
+            if agent_hold_meeting or not hh_id or hh_id not in valid_hh_ids:
                 logfire.warn("Skipping orphan or unassigned-household interaction", interaction_id=page_id, client=m_client)
                 print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: no valid household (not in CRM, or household held for missing primary advisor)")
                 holdouts.append(Holdout(kind="interaction", entity_id=page_id, label=str(m_client), reason="Rule 7: no valid household"))

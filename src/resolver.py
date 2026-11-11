@@ -171,6 +171,70 @@ def add_dynamic_context(ctx: RunContext[ResolutionDeps]) -> str:
     )
 
 
+def _case_label(case: UnresolvedCase) -> str:
+    raw = case.raw_record
+    return str(raw.get("Name") or raw.get("Account_Holder") or raw.get("Client") or case.case_id)
+
+
+def _safe_flag(case: UnresolvedCase, err: object) -> CaseResolution:
+    """If the model cannot produce a valid decision for a case, flag it for a person instead of guessing or crashing."""
+    label = _case_label(case)
+    raw = case.raw_record
+    entities = [label] + ([str(raw["Account_Number"])] if raw.get("Account_Number") else [])
+    return CaseResolution(
+        case_id=case.case_id,
+        action="flag_for_clarification",
+        confidence=0.0,
+        provenance_source="assumption",
+        evidence=f"The agent could not produce a valid decision for this record ({str(err)[:120]}); held for review. Triggers: {', '.join(case.reasons)}.",
+        blocker=Blocker(
+            matrix_rule="F6",
+            category="Needs manual review",
+            trigger=f"{label} could not be resolved automatically ({', '.join(case.reasons)}).",
+            evidence=f"Source record: {label}. Triggers: {', '.join(case.reasons)}.",
+            candidate_options=[
+                f"Option A: Dana confirms how {label} should be mapped.",
+                f"Option B: Keep {label} out of reporting until it is reviewed.",
+            ],
+            proposed_default=f"Option B — keep {label} out of reporting until reviewed.",
+            default_action="hold_out",
+            question_for_dana=f"How should {label} be mapped?",
+            affected_entities=entities,
+        ),
+    )
+
+
+def _resolve_batch(batch: list[UnresolvedCase], deps: ResolutionDeps) -> list[CaseResolution]:
+    """Resolve a batch; any case the model fails or omits is retried alone, then flagged safely. Never raises."""
+
+    def call(cases: list[UnresolvedCase]) -> list[CaseResolution]:
+        bundles = [build_case_context(c, deps) for c in cases]
+        prompt = (
+            "Resolve each of the following UnresolvedCase items using the Advisor Roster, "
+            "Round 1 Slack Thread, and Cross-Source Context:\n\n" + json.dumps(bundles, indent=2, default=str)
+        )
+        return resolution_agent.run_sync(prompt, deps=deps).output.resolutions
+
+    wanted = {c.case_id for c in batch}
+    try:
+        got = {r.case_id: r for r in call(batch) if r.case_id in wanted}
+    except Exception as err:
+        print(f"\n    [Batch failed ({str(err)[:100]}); retrying each case alone]")
+        got = {}
+    out: list[CaseResolution] = []
+    for c in batch:
+        if c.case_id in got:
+            out.append(got[c.case_id])
+            continue
+        try:
+            single = [r for r in call([c]) if r.case_id == c.case_id]
+            out.append(single[0] if single else _safe_flag(c, "no decision returned"))
+        except Exception as err:
+            print(f"    [{c.case_id}: no valid decision ({str(err)[:80]}); flagged for review]")
+            out.append(_safe_flag(c, err))
+    return out
+
+
 def resolve_unresolved_cases(
     mapping_result: DeterministicMappingResult,
     slack_path: str | Path = "sources/ops_slack_thread.md",
@@ -234,16 +298,10 @@ def resolve_unresolved_cases(
                     batch_index=i // batch_size,
                     case_ids=[c.case_id for c in batch],
                 ):
-                    bundles = [build_case_context(c, deps) for c in batch]
-                    prompt = (
-                        "Resolve each of the following UnresolvedCase items using the Advisor Roster, "
-                        "Round 1 Slack Thread, and Cross-Source Context:\n\n"
-                        + json.dumps(bundles, indent=2, default=str)
-                    )
-                    result = resolution_agent.run_sync(prompt, deps=deps)
+                    resolved = _resolve_batch(batch, deps)
                     print("Done.")
 
-                    for res in result.output.resolutions:
+                    for res in resolved:
                         all_resolutions.append(res)
                         cache_data.setdefault("resolutions", {})[res.case_id] = res.model_dump()
                         if res.action != "flag_for_clarification":  # an unanswered blocker is not a settled rule
