@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent
 
-from src.assembler import build_canonical_output, verify_clarifications_fact_check
+from src.assembler import build_canonical_output
+from src.blockers import check_holdouts_covered, group_blockers, verify_memo_against_ledger, write_blocker_ledger
 from src.mapper import run_deterministic_mapping
 from src.models import ClarificationItem
 from src.resolver import resolve_unresolved_cases
@@ -27,23 +28,26 @@ clarification_synthesizer = Agent(
     name="nevis_round2_clarification_writer",
     defer_model_check=True,
     instructions=(
-        "You write the Round 2 onboarding clarifications memo for RIA operations leadership (the Head of Operations).\n\n"
-        "Input: (1) the Round 1 Slack thread (already settled), and (2) a JSON list of anomaly signals detected from the source data. "
-        "Each signal has a signal_id, anomaly_type, affected_entities, facts, source_evidence and the pipeline_action already taken.\n\n"
+        "You turn the blocker ledger into the Round 2 onboarding clarifications memo for RIA operations leadership (the Head of Operations).\n\n"
+        "Input: the Round 1 Slack thread (already settled) and the blocker ledger: blockers the resolver agent flagged, each with a blocker_id, "
+        "affected_entities, evidence, candidate options, a proposed default and a question.\n\n"
         "Rules:\n"
-        "- The reader is an operations executive, not an engineer. Use wealth-management language only (client accounts, billing/AUM, advisor dashboards, household groupings, custodian feeds). "
-        "No database, schema or 'canonical model' jargon.\n"
-        "- Write one decision item per distinct decision. You may group signals of the same type into one item. "
-        "Every signal_id must appear in exactly one item's `signal_ids`; do not drop signals and do not invent new ones.\n"
-        "- Use ONLY facts present in the signals and the Slack thread. Copy account IDs, custodians, dates and dollar amounts exactly. "
-        "Never invent third parties, documents, people or policies. Quote source_evidence verbatim when it helps.\n"
-        "- Format money as $1,240,000 (or 2,100,000 CHF), never as 1240000.0, and never expose internal field names such as converted_usd or pipeline_action.\n"
+        "- You do not decide what is a blocker; the ledger already did. Do not add, drop or soften any blocker.\n"
+        "- Dana should be able to answer the whole list in a few lines, so merge blockers of the same kind (same matrix_rule and the same question, "
+        "e.g. every missing-advisor household, or every unmatched custodian account) into ONE item that names each entity with its account ID, custodian and amount. "
+        "If several blockers concern the same client, household or account (for example a client-level and an account-level blocker for the same person), "
+        "merge them into ONE item with one question and one default.\n"
+        "- Keep separate only blockers that need a different kind of answer. Every blocker_id must appear in exactly one item's `blocker_ids`.\n"
+        "- When merging, every blocker's `affected_entities` (every CU- account ID and every name) must still appear verbatim in the merged item's text. Never drop an account ID.\n"
+        "- Keep the facts exactly: account IDs, custodians, dates, dollar amounts, verbatim quotes. Never invent people, documents or policies.\n"
+        "- Never name a specific advisor in an option unless a source note or Slack names them; say 'a current roster advisor chosen by Dana'.\n"
+        "- Keep each blocker's proposed default. If you merge blockers, the item's default must cite an option letter that exists among its options.\n"
+        "- Wealth-management operations language only; no database or engineering jargon, and never mention the 'ledger', 'blockers', 'canonical output' or 'records held out of canonical output' "
+        "(say 'excluded from reporting'). Format money as $1,240,000.\n"
+        "- Each blocker has `account_facts` taken from the custodian feed. Whenever you name an account, state its custodian, amount and as-of date from those facts; "
+        "never say a custodian or amount is 'not provided'.\n"
         "- Do not re-ask anything the Slack thread already settled.\n"
-        "- Honour stated guidance in the Slack thread (for example, if the ops lead said not to guess a value, never propose a guessed value).\n"
-        "- Give 2-3 candidate options labelled 'Option A', 'Option B', 'Option C'. "
-        "The proposed default must be the option that matches the signal's pipeline_action (what was already applied in the output), "
-        "must cite its option letter, and must be the conservative choice that does not fabricate data.\n"
-        "- Output an executive memo: no email greeting, sign-off or conversational filler.\n"
+        "- Output an executive memo: no email greeting, sign-off or conversational filler. Dana should be able to answer the whole list in a few lines.\n"
     ),
 )
 
@@ -105,6 +109,8 @@ def run_pipeline(
     cache_path: str = "reference/llm_cache.json",
     canonical_out_path: str = "outputs/canonical_output.json",
     clarifications_out_path: str = "outputs/clarifications_round2.md",
+    blockers_json_path: str = "outputs/blockers.json",
+    blockers_md_path: str = "outputs/blockers.md",
     dry_run: bool = False,
 ) -> None:
     logfire.configure(send_to_logfire="if-token-present")
@@ -114,6 +120,8 @@ def run_pipeline(
         print("[Dry-Run Mode] Executing offline fallback verification using cached model responses...")
         canonical_out_path = "outputs/dry_run_canonical_output.json"
         clarifications_out_path = "outputs/dry_run_clarifications_round2.md"
+        blockers_json_path = "outputs/dry_run_blockers.json"
+        blockers_md_path = "outputs/dry_run_blockers.md"
 
     with logfire.span("nevis_onboarding_pipeline", dry_run=dry_run) as root_span:
         # Stage 1: Deterministic & KnowledgeBase Pass
@@ -129,12 +137,19 @@ def run_pipeline(
             force_replay=dry_run,
         )
 
+        # Stage 2b: the agent's flag decisions are written into the blocker ledger document
+        blockers = write_blocker_ledger(resolutions, json_path=blockers_json_path, md_path=blockers_md_path)
+        print(f"\n[Blocker Ledger] {len(blockers)} blocker(s) flagged by the resolver agent -> '{blockers_md_path}'")
+
         # Stage 3: Assemble Canonical Output & Post-Mapping Validation
-        canonical_output, raw_signals = build_canonical_output(
+        canonical_output, holdouts = build_canonical_output(
             mapping_result=mapping_result,
             resolutions=resolutions,
             kb=kb,
         )
+        check_holdouts_covered(holdouts, blockers)
+        print(f"  ✓ Every held-out record ({len(holdouts)}) is explained by a blocker in the ledger.")
+        groups = group_blockers(blockers)
 
         Path(canonical_out_path).parent.mkdir(parents=True, exist_ok=True)
         Path(canonical_out_path).write_text(
@@ -147,10 +162,10 @@ def run_pipeline(
         cache_file = Path(cache_path)
         cache_data = json.loads(cache_file.read_text(encoding="utf-8")) if cache_file.exists() else {}
 
-        with logfire.span("stage_4.synthesize_round2_clarifications", raw_count=len(raw_signals), mode="live_llm" if has_api_key else "cached_replay"):
+        with logfire.span("stage_4.synthesize_round2_clarifications", raw_count=len(blockers), mode="live_llm" if has_api_key else "cached_replay"):
             print("\n" + "=" * 80)
             print("[Stage 4: Synthesize Round 2 Clarifications]")
-            print(f"  • Programmatically detected {len(raw_signals)} anomaly signals from mapping & validator")
+            print(f"  • Marking out the memo from {len(blockers)} blocker(s) in the ledger")
             if not has_api_key and cache_data.get("stage_4_clarifications"):
                 print("  • Offline mode: Replaying cached Stage 4 clarifications from 'reference/llm_cache.json'")
                 logfire.info("Replaying cached Stage 4 clarifications from llm_cache.json (offline / dry-run)")
@@ -159,18 +174,22 @@ def run_pipeline(
                     synth_output.markdown_message_to_dana,
                     synth_output.items,
                 )
-                verify_clarifications_fact_check(formatted_memo, synth_output.items, raw_signals, sources_dir=sources_dir)
+                verify_memo_against_ledger(formatted_memo, synth_output.items, blockers, sources_dir=sources_dir)
             else:
                 print("  • Synthesizing executive questions using PydanticAI (openai:gpt-5.6-luna)... ", end="", flush=True)
                 slack_text = (Path(sources_dir) / "ops_slack_thread.md").read_text(encoding="utf-8")
                 prompt = (
                     f"### Round 1 Slack Thread Context (Already Settled — Do Not Re-Ask)\n{slack_text}\n\n"
-                    f"### Anomaly Signals Detected From Source Data ({len(raw_signals)})\n"
-                    f"Cover every signal_id. Do not change any account number, custodian or amount.\n"
-                    + json.dumps([sg.model_dump() for sg in raw_signals], indent=2, default=str)
+                    f"### Blocker Ledger: {len(blockers)} blockers in {len(groups)} decision groups\n"
+                    f"Write exactly ONE item per group (so {len(groups)} items). Each item's `blocker_ids` must list every blocker_id of its group. "
+                    f"Do not change any account number, custodian or amount.\n"
+                    + json.dumps(
+                        [{"group": n, "blockers": [b_.model_dump() for b_ in g]} for n, g in enumerate(groups, 1)],
+                        indent=2,
+                    )
                 )
 
-                max_attempts = 2
+                max_attempts = 3
                 for attempt in range(max_attempts):
                     synth_res = clarification_synthesizer.run_sync(prompt)
                     synth_output = synth_res.output
@@ -179,7 +198,7 @@ def run_pipeline(
                         synth_output.items,
                     )
                     try:
-                        verify_clarifications_fact_check(formatted_memo, synth_output.items, raw_signals, sources_dir=sources_dir)
+                        verify_memo_against_ledger(formatted_memo, synth_output.items, blockers, sources_dir=sources_dir)
                         break
                     except AssertionError as err:
                         if attempt == max_attempts - 1:
@@ -188,7 +207,7 @@ def run_pipeline(
                         prompt += f"\n\nERROR IN PREVIOUS ATTEMPT: {err}. Please correct this immediately."
 
                 print("Done.")
-                print("  ✓ Rigorous post-synthesis fact-check passed: every signal covered; account IDs, custodians and amounts verified against the custodian feed.")
+                print("  ✓ Rigorous post-synthesis fact-check passed: every blocker covered; account IDs, custodians and amounts verified against the custodian feed.")
                 cache_data["stage_4_clarifications"] = synth_output.model_dump()
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(json.dumps(cache_data, indent=2), encoding="utf-8")

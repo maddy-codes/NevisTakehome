@@ -5,14 +5,15 @@ from pathlib import Path
 from typing import Any, Literal
 import logfire
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_ai import Agent, RunContext
 
+from src.flag_matrix import FLAG_MATRIX
 from src.knowledge import KnowledgeBase, KnowledgeRule
 from src.mapper import DeterministicMappingResult, UnresolvedCase
 from src.models import (
     AccountType,
-    ClarificationItem,
+    Blocker,
     ClientRole,
     HouseholdStatus,
     InteractionType,
@@ -38,7 +39,17 @@ class CaseResolution(BaseModel):
     resolved_market_value_usd: float | None = None
     added_source_tags: list[str] = Field(default_factory=list)
     learned_rules: list[KnowledgeRule] = Field(default_factory=list)
-    clarification: ClarificationItem | None = None
+    blocker: Blocker | None = None
+
+    @model_validator(mode="after")
+    def _flag_decision_is_consistent(self) -> "CaseResolution":
+        if self.action == "flag_for_clarification" and self.blocker is None:
+            raise ValueError("action=flag_for_clarification requires a `blocker` citing a flag-matrix rule (F1-F7).")
+        if self.action != "flag_for_clarification" and self.blocker is not None:
+            raise ValueError("Only flag_for_clarification may carry a `blocker`; do not flag DO-NOT-FLAG situations (D1-D10).")
+        if self.blocker is not None and not self.blocker.affected_entities:
+            raise ValueError("blocker.affected_entities must list the account ids / names the question is about.")
+        return self
 
 
 class BatchResolutionOutput(BaseModel):
@@ -108,25 +119,36 @@ resolution_agent = Agent(
     instructions=(
         "You are a Forward Deployed Engineer agent mapping a wealth management firm's source data "
         "(Notion CRM exports + custodian positions spreadsheet + advisor roster) into the Nevis Canonical Data Model.\n\n"
+        "For each case you decide: auto-apply with provenance, collapse a confirmed duplicate, or flag it as a blocker for the client's operations lead. "
+        "Auto-apply as much as you confidently can; flag only what a person must decide. Silent guessing and over-flagging are both wrong.\n\n"
         "### Nevis Canonical Rules\n"
-        "1. One primary advisor per household (required and non-null). Never guess an advisor from a secondary/service role if the stakeholder forbade it.\n"
-        "2. AUM is market value in USD. Household AUM is the sum of its accounts' market_value_usd.\n"
-        "3. Unknown != zero. A household with no known accounts has AUM null, not 0.\n"
-        "4. Every account rolls up to exactly one household. No orphan accounts in canonical output; if an account holder has no match in CRM, flag it.\n"
-        "5. Currency: All non-USD balances must be automatically converted to market_value_usd using official 2025-06-30 quarter-end FX rates "
-        "(ECB / Federal Reserve H.10 on 2025-06-30: 1 EUR = 1.1720 USD, 1 CHF = 1.2539 USD). "
-        "In Round 1, Dana established that all firm reporting is in USD and foreign currencies are converted at quarter-end rates. "
-        "For Al-Rashid's EUR account, use provenance_source='slack_knowledge'. For Bianchi's CHF account (CU-6022 at Pictet, 2.1M CHF -> $2,633,190.00 USD), "
-        "use provenance_source='assumption' and action='auto_apply'. NEVER flag currency conversion for clarification: currency is always converted to USD automatically.\n"
-        "6. Fields with no first-class home: preserve business-meaningful attributes/lineage as `added_source_tags` (e.g. 'lineage:harborline'), drop irrelevant fields, and flag genuine contradictions (e.g. Omar Farouk having Active status with Deceased tag -> propose `resolved_status='INACTIVE'` as default and flag for Dana).\n"
-        "7. Every interaction rolls up to an existing household. Never mint a new household from an interaction; if the interaction's client is not in the CRM yet, flag it as an orphan.\n\n"
+        "1. One primary advisor per household (required, non-null). Never guess an advisor from a secondary/service role if the stakeholder forbade it.\n"
+        "2. AUM is market value in USD; household AUM is the sum of its accounts.\n"
+        "3. Unknown != zero. A household with no known accounts has AUM null.\n"
+        "4. Every account rolls up to exactly one household. No orphan accounts.\n"
+        "5. Non-USD balances are converted to USD (the assembler applies the quarter-end rate; do not compute it and do not flag it).\n"
+        "6. Fields with no first-class home: preserve business-meaningful attributes as `added_source_tags`, drop irrelevant ones, flag only genuine contradictions.\n"
+        "7. Every interaction rolls up to an existing household. Never mint a household from an interaction.\n\n"
+        + FLAG_MATRIX
+        + "\n### How to write a blocker\n"
+        "- `matrix_rule` is the F-rule that justifies the flag. `affected_entities` lists the exact account ids, client names and meeting names involved.\n"
+        "- Use only facts in the case context and the Slack thread; quote notes verbatim; never invent people, documents or policies.\n"
+        "- Give 2-3 options labelled 'Option A', 'Option B', 'Option C'. The `proposed_default` must cite one option letter and be the conservative choice "
+        "that does not fabricate data. Set `default_action` to its mechanical effect, which the assembler applies verbatim: "
+        "`hold_out` (record stays out of canonical output), `retain_and_tag` (kept with its original values and date, tagged pending), "
+        "or `set_inactive` (household INACTIVE, tagged pending). `default_action` must agree with `proposed_default`.\n"
+        "- Never name a specific advisor, household or value in an option unless a source note or Slack message names it. "
+        "Write 'a current roster advisor chosen by Dana' instead of picking a person: choosing one is guessing.\n"
+        "- Write in wealth-management operations language: no database or engineering jargon. Format money as $1,240,000.\n"
+        "- Do not re-ask anything the Slack thread already settled.\n\n"
         "### Strict Provenance Attribution (`provenance_source`)\n"
-        "- Use `slack_knowledge` ONLY when Dana explicitly settled that exact rule or entity in `ops_slack_thread.md` (i.e. `Status='Legacy' -> ACTIVE + lineage:harborline`, `Service Rep` ignored as primary advisor, `A. Novak` departed contractor, `Cost_Basis` ignored, `EUR` converted to USD for Al-Rashid, `Petrov, Dmitri` duplicate collapsed, `Thompson` household marked `INACTIVE`).\n"
-        "- Use `llm` when YOU resolved an entity link, nickname, abbreviated advisor name (`P. Raman -> ADV-001`, `E. Sokolova -> ADV-003`), spouse household link (`Linda Chen -> Chen Household`), or joint/trust/abbreviated account holder (`Bob & Linda Chen`, `Ada Okonkwo Revocable Trust`, `G. Whitfield`, `Bill Fitzgerald`, `Rachel & Daniel Abramson`, `Megan & Tom Sullivan`, `Thompson Joint`) by reading the CRM records and Notion Markdown notes.\n"
-        "- Use `assumption` when applying an FDE default pending Round 2 confirmation (such as converting `CHF` at 1.2539 USD/CHF or proposing a default on an ambiguous record).\n\n"
+        "- `slack_knowledge` ONLY when the Slack thread explicitly settled that exact rule or entity.\n"
+        "- `llm` when you resolved an entity link, nickname, abbreviated advisor name, spouse link or joint/trust/abbreviated holder from the CRM records and notes.\n"
+        "- `assumption` when applying a default pending confirmation.\n\n"
         "### Learned Rules (`learned_rules`)\n"
-        "Emit a `KnowledgeRule` in `learned_rules` for reusable mappings (`status_map`, `advisor_alias`, `departed_staff`, `duplicate_client`, `household_link`, `account_holder_to_household`, `meeting_client_alias`, `fx_rate`, `ignored_field`) with accurate `provenance_source` (`slack_knowledge`, `llm`, or `assumption`). "
-        "Do NOT emit an `account_holder_to_household` rule for `CU-5011` (`Nakamura, Kenji` IRA) because the notes explicitly say the family is still deciding whether it sits under the LLC household or on its own (`action='flag_for_clarification'`)."
+        "Emit a `KnowledgeRule` for reusable mappings (`status_map`, `advisor_alias`, `departed_staff`, `duplicate_client`, `household_link`, "
+        "`account_holder_to_household`, `meeting_client_alias`, `fx_rate`, `ignored_field`) with accurate `provenance_source`. "
+        "Never emit a reusable rule for a record you flagged under F2, F4, F6 or F7: an undecided link must not be learned as settled."
     ),
 )
 
@@ -188,8 +210,9 @@ def resolve_unresolved_cases(
                 if c.case_id in cache_data["resolutions"]:
                     res = CaseResolution.model_validate(cache_data["resolutions"][c.case_id])
                     all_resolutions.append(res)
-                    for rule in res.learned_rules:
-                        kb.upsert(rule)
+                    if res.action != "flag_for_clarification":  # an unanswered blocker is not a settled rule
+                        for rule in res.learned_rules:
+                            kb.upsert(rule)
             print(f"  ✓ Replayed {len(all_resolutions)} decisions instantly (zero API cost).")
         else:
             total_batches = (len(cases) + batch_size - 1) // batch_size
@@ -222,8 +245,9 @@ def resolve_unresolved_cases(
                     for res in result.output.resolutions:
                         all_resolutions.append(res)
                         cache_data.setdefault("resolutions", {})[res.case_id] = res.model_dump()
-                        for rule in res.learned_rules:
-                            kb.upsert(rule)
+                        if res.action != "flag_for_clarification":  # an unanswered blocker is not a settled rule
+                            for rule in res.learned_rules:
+                                kb.upsert(rule)
                         action_symbol = "✓" if res.action == "auto_apply" else "!"
                         print(f"      {action_symbol} {res.case_id}: action={res.action}, conf={res.confidence:.2f}, prov={res.provenance_source} | {res.evidence[:65]}...")
 

@@ -11,15 +11,14 @@ from src.models import (
     Account,
     AccountType,
     CanonicalOutput,
-    ClarificationItem,
     Client,
     ClientRole,
+    Holdout,
     Household,
     HouseholdStatus,
     Interaction,
     InteractionType,
     Provenance,
-    RawAnomalySignal,
 )
 from src.resolver import CaseResolution
 
@@ -51,46 +50,14 @@ def normalize_household_name(raw_hh: str | None, fallback_last_name: str) -> str
     return f"{base} Household"
 
 
-_NAME_STOPWORDS = {"llc", "inc", "trust", "revocable", "household", "holdings", "the", "and", "joint"}
-
-
-def _name_tokens(text: str | None) -> set[str]:
-    return {t for t in re.findall(r"[a-z]{3,}", (text or "").lower()) if t not in _NAME_STOPWORDS}
-
-
-def _is_standard_fee(value: str) -> bool:
-    return bool(re.match(r"^\d+(\.\d+)?\s*%$", value.strip()))
-
-
 def build_canonical_output(
     mapping_result: DeterministicMappingResult,
     resolutions: list[CaseResolution],
     kb: KnowledgeBase,
-) -> tuple[CanonicalOutput, list[RawAnomalySignal]]:
-    """Assemble canonical entities and return the data-derived anomaly signals that need a human decision.
-
-    Signals carry only facts observed in the sources plus the action this pipeline actually took.
-    Options and recommended defaults are written downstream (Stage 4), never hardcoded here.
-    """
+) -> tuple[CanonicalOutput, list[Holdout]]:
     with logfire.span("stage_3.assemble_and_validate") as span:
         res_by_id: dict[str, CaseResolution] = {r.case_id: r for r in resolutions}
-        signals: list[RawAnomalySignal] = []
-        held_hh_signals: dict[str, RawAnomalySignal] = {}
-        deceased_signals: dict[str, RawAnomalySignal] = {}
-
-        # Quarter-end cutoff = latest valuation date present in the custodian feed.
-        valuation_cutoff = max(str(a["As_Of_Date"]) for a in mapping_result.all_accounts_raw)
-
-        def related_notes(holder_or_client: str) -> list[str]:
-            toks = _name_tokens(holder_or_client)
-            notes: list[str] = []
-            for c in mapping_result.all_clients_raw:
-                if c.get("Notes") and toks & _name_tokens(c["Name"]):
-                    notes.append(f"CRM client note ({c['Name']}): {c['Notes']}")
-            for m in mapping_result.all_interactions_raw:
-                if m.get("Notes") and toks & _name_tokens(m.get("Client")):
-                    notes.append(f"Meeting note ({m.get('Client')}): {m['Notes']}")
-            return notes
+        holdouts: list[Holdout] = []
 
         advisor_by_name = {a.full_name: a.advisor_id for a in mapping_result.advisors}
         advisor_ids = {a.advisor_id for a in mapping_result.advisors}
@@ -176,7 +143,8 @@ def build_canonical_output(
             # For Omar Farouk: Deceased tag contradicts Active CRM status -> default to INACTIVE per clarification
             raw_status = (raw_c.get("Status") or "").strip()
             raw_tags = str(raw_c.get("Tags") or "")
-            if "Deceased" in raw_tags:
+            agent_inactive = bool(res and res.blocker and res.blocker.default_action == "set_inactive")
+            if agent_inactive or "Deceased" in raw_tags:  # Deceased tag kept as a safety net
                 status: HouseholdStatus = "INACTIVE"
             elif res and res.resolved_status:
                 status = res.resolved_status
@@ -269,32 +237,15 @@ def build_canonical_output(
 
             # Rule 1: One primary advisor per household (required and non-null).
             # If primary_adv_id is None, hold household out of canonical_output (already flagged for Dana)
-            if not primary_adv_id:
-                logfire.warn("Holding household out of canonical output due to missing primary_advisor_id", hh_id=hh_id, hh_name=hh_name)
-                print(f"  [Holdout: Household] '{hh_name}' ({hh_id}) -> Rule 1: No primary advisor assigned (held pending Dana's confirmation)")
-                held_hh_signals[hh_id] = RawAnomalySignal(
-                    signal_id=f"sig_missing_advisor_{hh_id}",
-                    anomaly_type="missing_primary_advisor",
-                    affected_entities=[hh_name],
-                    facts={
-                        "household": hh_name,
-                        "clients": [
-                            {
-                                "name": m["raw"]["Name"],
-                                "advisor_field": m["raw"].get("Advisor"),
-                                "service_rep_field": m["raw"].get("Service Rep"),
-                            }
-                            for m in members
-                        ],
-                        "held_accounts": [],
-                        "held_interactions": [],
-                        "pipeline_action": (
-                            "Household, its clients, accounts and meetings are held out of the canonical output "
-                            "until a primary advisor is confirmed; no advisor was guessed."
-                        ),
-                    },
-                    source_evidence=[f"CRM client note ({m['raw']['Name']}): {m['raw']['Notes']}" for m in members if m["raw"].get("Notes")],
-                )
+            agent_hold = next(
+                (m["res"].blocker for m in members if m["res"] and m["res"].blocker and m["res"].blocker.default_action == "hold_out"),
+                None,
+            )
+            if not primary_adv_id or agent_hold:
+                why = "Rule 1: no primary advisor" if not primary_adv_id else f"agent blocker {agent_hold.matrix_rule}: {agent_hold.proposed_default}"  # type: ignore[union-attr]
+                logfire.warn("Holding household out of canonical output", hh_id=hh_id, hh_name=hh_name, reason=why)
+                print(f"  [Holdout: Household] '{hh_name}' ({hh_id}) -> {why} (held pending Dana's confirmation)")
+                holdouts.append(Holdout(kind="household", entity_id=hh_id, label=hh_name, reason=why))
                 continue
 
             valid_hh_ids.add(hh_id)
@@ -307,24 +258,10 @@ def build_canonical_output(
             # Check if any member has pending:round2
             hh_status = members[0]["status"]
             # If household has Deceased tag, ensure household status is INACTIVE
-            if any("tag:Deceased" in m["tags"] for m in members):
+            if any("tag:Deceased" in m["tags"] or (m["res"] and m["res"].blocker and m["res"].blocker.default_action == "set_inactive") for m in members):
                 hh_status = "INACTIVE"
                 if "pending:round2_deceased_status" not in hh_tags:
                     hh_tags.append("pending:round2_deceased_status")
-                deceased_signals[hh_id] = RawAnomalySignal(
-                    signal_id=f"sig_deceased_status_{hh_id}",
-                    anomaly_type="deceased_contact_status_conflict",
-                    affected_entities=[hh_name],
-                    facts={
-                        "household": hh_name,
-                        "clients": [
-                            {"name": m["raw"]["Name"], "crm_status": m["raw"].get("Status"), "tags": m["raw"].get("Tags")}
-                            for m in members
-                        ],
-                        "accounts": [],
-                        "pipeline_action": "Household status set to INACTIVE and tagged pending:round2_deceased_status.",
-                    },
-                )
 
             households_out.append(
                 Household(
@@ -377,33 +314,17 @@ def build_canonical_output(
 
             # Rule 4: No orphan accounts in canonical output
             if not hh_id or hh_id not in valid_hh_ids:
-                reason = "Orphan custodian account (no matching CRM client; Rule 4)" if not hh_id else f"Household '{hh_id}' held out (unassigned advisor; Rule 1)"
+                reason = "Orphan custodian account (no matching CRM client; Rule 4)" if not hh_id else f"Household '{hh_id}' held out (see its blocker)"
                 logfire.warn("Skipping orphan or unassigned-advisor account from canonical output", account_id=acct_num, holder=holder, resolved_hh_id=hh_id)
                 print(f"  [Holdout: Account] {acct_num} ('{holder}', ${float(raw_a['Market_Value']):,.0f}) -> {reason}")
-                acct_facts = {
-                    "account_id": acct_num,
-                    "holder": holder,
-                    "custodian": raw_a["Custodian"],
-                    "account_type": raw_a["Account_Type"],
-                    "market_value": float(raw_a["Market_Value"]),
-                    "currency": raw_a["Currency"],
-                    "as_of_date": str(raw_a["As_Of_Date"]),
-                }
-                if hh_id and hh_id in held_hh_signals:
-                    held_hh_signals[hh_id].facts["held_accounts"].append(acct_facts)
-                else:
-                    signals.append(
-                        RawAnomalySignal(
-                            signal_id=f"sig_unmatched_account_{acct_num}",
-                            anomaly_type="unmatched_custodian_account",
-                            affected_entities=[acct_num, holder],
-                            facts={
-                                **acct_facts,
-                                "pipeline_action": "Account held out of the canonical output and not attached to any household; no household was created.",
-                            },
-                            source_evidence=related_notes(holder),
-                        )
-                    )
+                holdouts.append(Holdout(kind="account", entity_id=acct_num, label=holder, reason=reason))
+                continue
+
+            # The resolver agent's blocker default is applied verbatim (memo and output cannot disagree)
+            if res and res.blocker and res.blocker.default_action == "hold_out":
+                reason = f"Held out per agent blocker {res.blocker.matrix_rule}: {res.blocker.proposed_default}"
+                print(f"  [Holdout: Account] {acct_num} ('{holder}', ${float(raw_a['Market_Value']):,.0f}) -> {reason}")
+                holdouts.append(Holdout(kind="account", entity_id=acct_num, label=holder, reason=reason))
                 continue
 
             curr = raw_a["Currency"]
@@ -460,62 +381,23 @@ def build_canonical_output(
                 )
             if fx_prov:
                 prov.append(fx_prov)
-                if fx_prov.source == "assumption":
-                    # Rate not settled in Round 1 Slack -> needs confirmation
-                    signals.append(
-                        RawAnomalySignal(
-                            signal_id=f"sig_fx_{acct_num}",
-                            anomaly_type="unconfirmed_fx_conversion",
-                            affected_entities=[acct_num, holder],
-                            facts={
-                                "account_id": acct_num,
-                                "holder": holder,
-                                "custodian": raw_a["Custodian"],
-                                "original_amount": raw_mv,
-                                "original_currency": curr,
-                                "converted_usd": mv_usd,
-                                "rate_usd_per_unit": CHF_USD_RATE if curr == "CHF" else EUR_USD_RATE,
-                                "rate_source": "ECB reference rate, 2025-06-30 quarter-end",
-                                "pipeline_action": "Converted to USD at the stated rate; provenance recorded as an assumption pending confirmation.",
-                            },
-                        )
-                    )
 
-            # Stale valuation: older than the latest valuation date present in the custodian feed
+            # If account is stale (older than 2025-06-30), record assumption provenance
             as_of_str = str(raw_a["As_Of_Date"])
-            if as_of_str < valuation_cutoff:
+            if as_of_str != "2025-06-30":
                 prov.append(
                     Provenance(
                         source="assumption",
                         rule_or_model="stale_valuation_policy",
                         confidence=0.85,
                         evidence=(
-                            f"Valuation is dated {as_of_str} (older than the {valuation_cutoff} feed cutoff). "
-                            "Retained at last reported balance and tagged pending:round2_stale_valuation pending refreshed statements."
+                            f"Valuation is dated {as_of_str} (older than 2025-06-30 quarter-end). "
+                            "Retained at its last reported balance and tagged pending:round2_stale_valuation until refreshed statements arrive."
                         ),
                     )
                 )
                 if hh_id in hh_by_id and "pending:round2_stale_valuation" not in hh_by_id[hh_id].source_tags:
                     hh_by_id[hh_id].source_tags.append("pending:round2_stale_valuation")
-                # Inactive households (e.g. Thompson, settled in Round 1) need no valuation decision.
-                if hh_by_id[hh_id].status == "ACTIVE":
-                    signals.append(
-                        RawAnomalySignal(
-                            signal_id=f"sig_stale_{acct_num}",
-                            anomaly_type="stale_valuation",
-                            affected_entities=[acct_num, holder],
-                            facts={
-                                "account_id": acct_num,
-                                "holder": holder,
-                                "custodian": raw_a["Custodian"],
-                                "market_value_usd": mv_usd,
-                                "as_of_date": as_of_str,
-                                "feed_cutoff_date": valuation_cutoff,
-                                "pipeline_action": "Account retained at last reported balance with its original as-of date; household tagged pending:round2_stale_valuation.",
-                            },
-                            source_evidence=related_notes(holder),
-                        )
-                    )
 
             accounts_out.append(
                 Account(
@@ -533,16 +415,6 @@ def build_canonical_output(
         # Roll up AUM and as_of_date to Households (Rule 2 & Rule 3: Unknown != 0; no accounts -> aum_usd = None)
         for acct in accounts_out:
             hh = hh_by_id[acct.household_id]
-            if acct.household_id in deceased_signals:
-                deceased_signals[acct.household_id].facts["accounts"].append(
-                    {
-                        "account_id": acct.account_id,
-                        "custodian": acct.custodian,
-                        "market_value_usd": acct.market_value_usd,
-                        "as_of_date": acct.as_of_date,
-                    }
-                )
-                deceased_signals[acct.household_id].affected_entities.append(acct.account_id)
             hh.aum_usd = round((hh.aum_usd or 0.0) + (acct.market_value_usd or 0.0), 2)
             if hh.as_of_date is None or acct.as_of_date > hh.as_of_date:
                 hh.as_of_date = acct.as_of_date
@@ -565,28 +437,8 @@ def build_canonical_output(
 
             if not hh_id or hh_id not in valid_hh_ids:
                 logfire.warn("Skipping orphan or unassigned-household interaction", interaction_id=page_id, client=m_client)
-                print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: Held out (no valid household: prospect not in CRM, or household held for missing primary advisor)")
-                meeting_facts = {
-                    "meeting_id": page_id,
-                    "client_label": m_client,
-                    "date": str(raw_m["Date"]),
-                    "attendee": raw_m.get("Attendee"),
-                    "notes": raw_m.get("Notes"),
-                }
-                if hh_id and hh_id in held_hh_signals:
-                    held_hh_signals[hh_id].facts["held_interactions"].append(meeting_facts)
-                else:
-                    signals.append(
-                        RawAnomalySignal(
-                            signal_id=f"sig_orphan_interaction_{page_id}",
-                            anomaly_type="orphan_interaction",
-                            affected_entities=[str(m_client)],
-                            facts={
-                                **meeting_facts,
-                                "pipeline_action": "Meeting held out of the canonical output; no household was created from it.",
-                            },
-                        )
-                    )
+                print(f"  [Holdout: Interaction] {page_id} ('{m_client}', date={raw_m['Date']}) -> Rule 7: no valid household (not in CRM, or household held for missing primary advisor)")
+                holdouts.append(Holdout(kind="interaction", entity_id=page_id, label=str(m_client), reason="Rule 7: no valid household"))
                 continue
 
             raw_att = raw_m.get("Attendee")
@@ -660,56 +512,6 @@ def build_canonical_output(
             print(f"  ✓ Canonical Entities Finalized: {len(households_out)} households, {len(clients_out)} clients, {len(accounts_out)} accounts, {len(interactions_out)} interactions, {len(mapping_result.advisors)} advisors")
             print("=" * 80)
 
-        # 5. Household attribute conflicts and non-standard fee schedules (Rule 6), derived from CRM data
-        conflict_rows: list[dict[str, Any]] = []
-        for hh_id, members in sorted(hh_groups.items()):
-            if hh_id not in valid_hh_ids or len(members) < 2:
-                continue
-            for field in ("Risk Profile", "Fee Schedule"):
-                vals = {m["raw"].get(field) for m in members if m["raw"].get(field)}
-                if len(vals) > 1:
-                    conflict_rows.append(
-                        {
-                            "household": members[0]["hh_name"],
-                            "field": field,
-                            "values_by_client": {m["raw"]["Name"]: m["raw"].get(field) for m in members},
-                        }
-                    )
-        if conflict_rows:
-            signals.append(
-                RawAnomalySignal(
-                    signal_id="sig_household_attribute_conflicts",
-                    anomaly_type="household_attribute_conflict",
-                    affected_entities=sorted({r["household"] for r in conflict_rows}),
-                    facts={
-                        "conflicts": conflict_rows,
-                        "pipeline_action": "Each client keeps its own value in source_tags; no household-level value was invented.",
-                    },
-                )
-            )
-
-        nonstandard_fees: dict[str, list[str]] = {}
-        for raw_c in mapping_result.all_clients_raw:
-            fee = (raw_c.get("Fee Schedule") or "").strip()
-            if fee and not _is_standard_fee(fee):
-                nonstandard_fees.setdefault(fee, []).append(raw_c["Name"])
-        if nonstandard_fees:
-            signals.append(
-                RawAnomalySignal(
-                    signal_id="sig_nonstandard_fee_schedules",
-                    anomaly_type="nonstandard_fee_schedule",
-                    affected_entities=sorted(nonstandard_fees),
-                    facts={
-                        "values_to_clients": nonstandard_fees,
-                        "pipeline_action": "Values preserved verbatim as fee_schedule tags; no fee percentage was inferred.",
-                    },
-                )
-            )
-
-        signals = list(held_hh_signals.values()) + list(deceased_signals.values()) + signals
-        for sg in signals:
-            logfire.info("anomaly_signal", signal_id=sg.signal_id, anomaly_type=sg.anomaly_type)
-
         output = CanonicalOutput(
             advisors=mapping_result.advisors,
             households=households_out,
@@ -722,89 +524,6 @@ def build_canonical_output(
         span.set_attribute("canonical_clients", len(clients_out))
         span.set_attribute("canonical_accounts", len(accounts_out))
         span.set_attribute("canonical_interactions", len(interactions_out))
-        span.set_attribute("anomaly_signals", len(signals))
+        span.set_attribute("holdouts", len(holdouts))
 
-        return output, signals
-
-
-def verify_clarifications_fact_check(
-    memo_text: str,
-    items: "list[ClarificationItem]",
-    signals: list[RawAnomalySignal],
-    sources_dir: str | Path = "sources",
-) -> None:
-    """Data-driven check of the Round 2 memo against the sources and the detected signals.
-
-    Nothing here names specific clients or accounts: every check is derived from the
-    custodian feed and the anomaly signals produced during assembly.
-    """
-    positions_df = pd.read_excel(Path(sources_dir) / "custodian_positions.xlsx")
-    pos_map = {r["Account_Number"]: r for _, r in positions_df.iterrows()}
-    all_custodians = {str(r["Custodian"]) for r in pos_map.values()}
-
-    # 1. No email roleplay
-    for term in ("Hi Dana", "Dear Dana", "Best regards", "Warmly"):
-        if re.search(rf"\b{re.escape(term)}\b", memo_text, re.IGNORECASE):
-            raise AssertionError(f"Fact-Check Failure: conversational roleplay '{term}' detected in memo!")
-
-    # 2. Every detected signal is covered by at least one item; no item cites an unknown signal
-    known_ids = {sg.signal_id for sg in signals}
-    covered: set[str] = set()
-    for it in items:
-        unknown = set(it.signal_ids) - known_ids
-        if unknown:
-            raise AssertionError(f"Fact-Check Failure: item '{it.id}' cites unknown signal ids {sorted(unknown)}!")
-        covered |= set(it.signal_ids)
-    missing = known_ids - covered
-    if missing:
-        raise AssertionError(f"Fact-Check Failure: detected issues not covered by any question: {sorted(missing)}!")
-
-    # 3. Every entity of a covered signal is named in the memo (account ids and household/holder names)
-    for sg in signals:
-        for ent in sg.affected_entities:
-            if re.fullmatch(r"CU-\d+", ent):
-                present = ent in memo_text
-            else:
-                present = any(t in memo_text.lower() for t in _name_tokens(ent)) if _name_tokens(ent) else True
-            if not present:
-                raise AssertionError(f"Fact-Check Failure: '{ent}' ({sg.anomaly_type}) is missing from the memo!")
-
-    # 4. Account ids exist in the feed and are not paired with the wrong custodian
-    def near(a: str, b: str) -> bool:
-        return bool(re.search(rf"{re.escape(a)}[^.\n\)]{{0,35}}{re.escape(b)}|{re.escape(b)}[^.\n\(]{{0,35}}{re.escape(a)}", memo_text, re.IGNORECASE))
-
-    for acct_id in set(re.findall(r"CU-\d+", memo_text)):
-        if acct_id not in pos_map:
-            raise AssertionError(f"Fact-Check Failure: unknown account ID '{acct_id}' in memo!")
-        true_cust = str(pos_map[acct_id]["Custodian"])
-        for other in all_custodians - {true_cust}:
-            if near(acct_id, other) and not near(acct_id, true_cust):
-                raise AssertionError(f"Fact-Check Failure: {acct_id} is held at {true_cust}, not {other}!")
-
-    # 5. Dollar figures for signalled accounts must match the feed (original or converted amount)
-    for sg in signals:
-        aid = sg.facts.get("account_id")
-        if isinstance(aid, str) and aid in pos_map and aid in memo_text:
-            row = pos_map[aid]
-            allowed = {float(row["Market_Value"])}
-            if sg.facts.get("converted_usd") is not None:
-                allowed.add(float(sg.facts["converted_usd"]))
-            # Only assert when the item explicitly cites a dollar amount next to the account id
-            for m in re.finditer(rf"{re.escape(aid)}[^\n]{{0,60}}?\$([\d,]+(?:\.\d+)?)([MmKk]?)", memo_text):
-                num = float(m.group(1).replace(",", ""))
-                num *= {"m": 1e6, "k": 1e3}.get(m.group(2).lower(), 1)
-                if not any(abs(num - a) <= max(1.0, 0.006 * a) for a in allowed):
-                    raise AssertionError(f"Fact-Check Failure: amount ${m.group(1)}{m.group(2)} next to {aid} does not match the feed!")
-
-    # 6. Cited option letter in Proposed Default must exist among Candidate Options
-    for block in memo_text.split("### ")[1:]:
-        title = block.strip().splitlines()[0] if block.strip() else ""
-        if not ("\u2014" in title or "\u2013" in title):
-            continue
-        opt_matches = re.findall(r"\*\*(Option [A-D])\*\*", block)
-        default_match = re.search(r"\*\*Proposed Default\*\*:\s*\*\*(Option [A-D])", block)
-        if default_match and default_match.group(1) not in opt_matches:
-            raise AssertionError(
-                f"Fact-Check Failure in section '{title[:40]}': default cites '{default_match.group(1)}', "
-                f"but available candidate options are {opt_matches}!"
-            )
+        return output, holdouts

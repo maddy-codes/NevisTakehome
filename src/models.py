@@ -72,9 +72,42 @@ class RawAnomalySignal(BaseModel):
     source_evidence: list[str] = Field(default_factory=list)
 
 
+FlagRule = Literal["F1", "F2", "F3", "F4", "F5", "F6", "F7"]
+
+
+class Blocker(BaseModel):
+    """A record the agent decided it cannot resolve confidently. Written to the blocker ledger."""
+
+    blocker_id: str = ""  # assigned when written to the ledger
+    case_id: str = ""  # assigned when written to the ledger
+    matrix_rule: FlagRule  # which flag-matrix rule (src/flag_matrix.py) justified flagging
+    category: str
+    trigger: str
+    evidence: str
+    candidate_options: list[str]
+    proposed_default: str
+    # Mechanical effect of proposed_default, applied by the assembler so output and memo cannot disagree:
+    #   hold_out: keep the record out of canonical output; retain_and_tag: keep it with original values, tagged pending;
+    #   set_inactive: household status INACTIVE, tagged pending.
+    default_action: Literal["hold_out", "retain_and_tag", "set_inactive"]
+    question_for_dana: str
+    affected_entities: list[str] = Field(default_factory=list)  # account ids, client/household names, meeting names
+    # Filled from the custodian feed when the ledger is written (facts only, never written by the LLM)
+    account_facts: list[dict] = Field(default_factory=list)
+
+
+class Holdout(BaseModel):
+    """A record the assembler kept out of canonical output (facts only, no recommendation)."""
+
+    kind: Literal["household", "account", "interaction"]
+    entity_id: str
+    label: str
+    reason: str
+
+
 class ClarificationItem(BaseModel):
     id: str
-    signal_ids: list[str] = Field(default_factory=list)
+    blocker_ids: list[str] = Field(default_factory=list)
     category: str
     trigger: str
     evidence: str

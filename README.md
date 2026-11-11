@@ -4,8 +4,9 @@ An agentic data-mapping pipeline built with **PydanticAI** (`openai:gpt-5.6-luna
 
 1. [`outputs/canonical_output.json`](outputs/canonical_output.json) — Validated mapped records across all 5 Nevis canonical entities (`advisors`, `households`, `clients`, `accounts`, `interactions`) carrying field-level provenance (`deterministic`, `slack_knowledge`, `llm`, `assumption`).
 2. [`outputs/clarifications_round2.md`](outputs/clarifications_round2.md) — The customer-facing Round 2 executive memorandum for Dana Ruiz (Head of Operations) with scoped questions, triggers, exact evidence, candidate options, and proposed defaults.
-3. [`outputs/knowledge_base.json`](outputs/knowledge_base.json) — The persistent knowledge layer capturing stakeholder rules from Round 1 Slack and entity resolutions so future syncs apply them automatically.
-4. [`DESIGN.md`](DESIGN.md) — System architecture, data normalization details, trade-offs, and Slack business rules write-up.
+3. [`outputs/blockers.md`](outputs/blockers.md) / `blockers.json` — The blocker ledger the resolver agent writes; the Round 2 memo is marked out of it.
+4. [`outputs/knowledge_base.json`](outputs/knowledge_base.json) — The persistent knowledge layer capturing stakeholder rules from Round 1 Slack and entity resolutions so future syncs apply them automatically.
+5. [`DESIGN.md`](DESIGN.md) — System architecture, data normalization details, trade-offs, and Slack business rules write-up.
 
 ---
 
@@ -26,6 +27,8 @@ Nevis/
 ├── src/                               # Modular pipeline engine
 │   ├── __init__.py
 │   ├── models.py                      # Canonical Pydantic schemas & provenance models
+│   ├── flag_matrix.py                 # Flag / don't-flag matrix given to the agent
+│   ├── blockers.py                    # Blocker ledger writer, holdout coverage, memo fact-check
 │   ├── knowledge.py                   # KnowledgeBase and KnowledgeRule store
 │   ├── mapper.py                      # Stage 1 deterministic mapping & unmapped detector
 │   ├── resolver.py                    # Stage 2 PydanticAI context builder & agent

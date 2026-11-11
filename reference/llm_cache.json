@@ -91,55 +91,31 @@
     "client:2f805d00": {
       "case_id": "client:2f805d00",
       "action": "auto_apply",
-      "confidence": 1.0,
-      "provenance_source": "assumption",
-      "evidence": "Francesca Bianchi exactly matches the CRM household and CU-6022. The CHF balance is converted using the mandated 2025-06-30 rate: 2,100,000 CHF \u00d7 1.2539 = 2,633,190 USD. Advisor Sofia Marchetti maps to ADV-005; the account is Individual and the client is Active.",
+      "confidence": 0.99,
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian-holder match for Francesca Bianchi; active Bianchi household and Sofia Marchetti map to ADV-005. Account CU-6022 is Individual, CHF, market value 2,100,000 as of 2025-06-30. Preserve the note's Geneva and CHF facts; the assembler must convert CHF to USD at quarter-end. Cost basis is not used.",
       "resolved_household_name": "Bianchi",
       "resolved_advisor_id": "ADV-005",
       "resolved_status": "ACTIVE",
       "resolved_client_role": "PRIMARY",
       "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 2633190.0,
+      "resolved_market_value_usd": null,
       "added_source_tags": [
-        "currency:CHF",
-        "fx_rate:1.2539",
-        "lineage:pictet"
+        "residence:Geneva",
+        "custodian_currency:CHF",
+        "fx_conversion_required:quarter_end",
+        "note:Based in Geneva; account held with a Swiss custodian in francs."
       ],
-      "learned_rules": [
-        {
-          "rule_id": "fx_rate:CHF",
-          "rule_type": "fx_rate",
-          "scope": "global_reusable",
-          "source_value": "CHF",
-          "target_value": "1 CHF = 1.2539 USD",
-          "extra_tags": [],
-          "provenance_source": "assumption",
-          "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to Bianchi account CU-6022.",
-          "version": 1,
-          "active": true
-        },
-        {
-          "rule_id": "account_holder_to_household:Francesca Bianchi",
-          "rule_type": "account_holder_to_household",
-          "scope": "firm_specific",
-          "source_value": "Francesca Bianchi",
-          "target_value": "Bianchi",
-          "extra_tags": [],
-          "provenance_source": "llm",
-          "evidence": "Exact CRM and custodian holder match links Francesca Bianchi to the Bianchi household.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": null
+      "learned_rules": [],
+      "blocker": null
     },
     "client:c4eea67c": {
       "case_id": "client:c4eea67c",
       "action": "flag_for_clarification",
-      "confidence": 1.0,
+      "confidence": 0.98,
       "provenance_source": "slack_knowledge",
-      "evidence": "George Whitfield is a Legacy client, which maps to ACTIVE with Harborline lineage. A. Novak is a departed contractor and Service Rep cannot be used as the primary advisor. No current Advisor is present, so the required advisor assignment cannot be guessed. CU-5005 maps to Whitfield and is $670,000 USD.",
+      "evidence": "George Whitfield matches the Whitfield household and account CU-5005 exactly. Legacy must be treated as ACTIVE with lineage:harborline. The Advisor field is blank; Service Rep is A. Novak, whom Dana identified as departed Anna Novak, and the note says \"needs reassigning to someone current.\" Service Rep cannot be used as the advisor.",
       "resolved_household_name": "Whitfield",
       "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
@@ -149,63 +125,46 @@
       "resolved_market_value_usd": 670000.0,
       "added_source_tags": [
         "lineage:harborline",
+        "service_rep:A. Novak",
         "departed_staff:A. Novak"
       ],
-      "learned_rules": [
-        {
-          "rule_id": "status_map:Legacy",
-          "rule_type": "status_map",
-          "scope": "firm_specific",
-          "source_value": "Legacy",
-          "target_value": "ACTIVE",
-          "extra_tags": [
-            "lineage:harborline"
-          ],
-          "provenance_source": "slack_knowledge",
-          "evidence": "Dana said Legacy clients are normal active clients and Harborline lineage should be preserved.",
-          "version": 1,
-          "active": true
-        },
-        {
-          "rule_id": "departed_staff:A. Novak",
-          "rule_type": "departed_staff",
-          "scope": "firm_specific",
-          "source_value": "A. Novak",
-          "target_value": "Anna Novak; departed contractor",
-          "extra_tags": [],
-          "provenance_source": "slack_knowledge",
-          "evidence": "Dana identified A. Novak as a departed contractor whose clients need reassignment.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": {
-        "id": "clarify-advisor-client-c4eea67c",
-        "signal_ids": [
-          "client:c4eea67c"
-        ],
-        "category": "missing_primary_advisor",
-        "trigger": "Advisor is blank and Service Rep is A. Novak, a departed contractor; Service Rep cannot be promoted to primary advisor.",
-        "evidence": "Dana explicitly said not to fall back to Service Rep and to surface clients still pointing at A. Novak.",
+      "learned_rules": [],
+      "blocker": {
+        "blocker_id": "blocker:client:c4eea67c:advisor",
+        "case_id": "client:c4eea67c",
+        "matrix_rule": "F1",
+        "category": "Missing primary advisor",
+        "trigger": "Advisor is blank and only the departed Service Rep A. Novak is present.",
+        "evidence": "CRM note: \"Another Harborline client. Anna was looking after him before she left the firm \u2014 needs reassigning to someone current.\" Dana said not to fall back to Service Rep and to flag blank Advisor fields.",
         "candidate_options": [
-          "ADV-001",
-          "ADV-002",
-          "ADV-003",
-          "ADV-004",
-          "ADV-005",
-          "ADV-006",
-          "ADV-007"
+          "Option A: Assign a current roster advisor chosen by Dana as George Whitfield's primary advisor.",
+          "Option B: Hold the Whitfield household without a primary advisor until Dana provides the reassignment.",
+          "Option C: Set the household inactive pending reassignment."
         ],
-        "proposed_default": "No advisor assignment until Dana confirms",
-        "question_for_dana": "Which current primary advisor should be assigned to George Whitfield?"
+        "proposed_default": "Option B: Hold the Whitfield household without a primary advisor until Dana provides the reassignment.",
+        "default_action": "hold_out",
+        "question_for_dana": "Which current roster advisor should be the primary advisor for George Whitfield?",
+        "affected_entities": [
+          "George Whitfield",
+          "Whitfield",
+          "CU-5005"
+        ],
+        "account_facts": [
+          {
+            "account_id": "CU-5005",
+            "account_holder": "G. Whitfield",
+            "market_value_usd": 670000,
+            "as_of_date": "2025-06-30"
+          }
+        ]
       }
     },
     "client:f91a0e32": {
       "case_id": "client:f91a0e32",
       "action": "auto_apply",
-      "confidence": 1.0,
-      "provenance_source": "llm",
-      "evidence": "Gerald Voss has an explicit current advisor, Grace Bennett (ADV-007), and an exact CRM household match. The Held Away tag is business-meaningful and is preserved. The unrelated Fitzgerald context does not affect this record; CU-6023 is not present for Gerald, so no AUM is inferred.",
+      "confidence": 0.98,
+      "provenance_source": "deterministic",
+      "evidence": "Gerald Voss has an explicit Active status, Grace Bennett maps to ADV-007, and the Held Away tag is a business-meaningful source attribute. The custodian context contains CU-6023 for Bill Fitzgerald, not Gerald Voss; it is not assigned to Voss. With no known Voss account, AUM remains null rather than zero.",
       "resolved_household_name": "Voss Household",
       "resolved_advisor_id": "ADV-007",
       "resolved_status": "ACTIVE",
@@ -217,14 +176,14 @@
         "held_away"
       ],
       "learned_rules": [],
-      "clarification": null
+      "blocker": null
     },
     "client:bc3491c1": {
       "case_id": "client:bc3491c1",
       "action": "flag_for_clarification",
-      "confidence": 1.0,
-      "provenance_source": "slack_knowledge",
-      "evidence": "Joris Vandermeer exactly matches the CRM and CU-6021. The client is Active with $1,620,000 USD, but Advisor is blank and there is no Service Rep fallback to use. Dana instructed that missing advisors must be flagged rather than guessed.",
+      "confidence": 0.99,
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian-holder match links Joris Vandermeer and CU-6021 to the Vandermeer household. Status is Active and the account is USD with market value $1,620,000 as of 2025-06-30. The Advisor field is blank and there is no valid advisor value to use.",
       "resolved_household_name": "Vandermeer",
       "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
@@ -232,27 +191,38 @@
       "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
       "resolved_market_value_usd": 1620000.0,
-      "added_source_tags": [],
+      "added_source_tags": [
+        "fee_schedule:Tier 1"
+      ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify-advisor-client-bc3491c1",
-        "signal_ids": [
-          "client:bc3491c1"
-        ],
-        "category": "missing_primary_advisor",
-        "trigger": "Advisor is blank and no authorized advisor mapping exists.",
-        "evidence": "Dana said blank Advisor fields must remain unassigned pending confirmation and Service Rep must not be used as primary advisor.",
+      "blocker": {
+        "blocker_id": "blocker:client:bc3491c1:advisor",
+        "case_id": "client:bc3491c1",
+        "matrix_rule": "F1",
+        "category": "Missing primary advisor",
+        "trigger": "Advisor field is blank.",
+        "evidence": "Joris Vandermeer has no Advisor and no Service Rep in the CRM record. Canonical rule requires one primary advisor per household; Dana instructed that blank Advisor fields must not be guessed or filled from another role.",
         "candidate_options": [
-          "ADV-001",
-          "ADV-002",
-          "ADV-003",
-          "ADV-004",
-          "ADV-005",
-          "ADV-006",
-          "ADV-007"
+          "Option A: Assign a current roster advisor chosen by Dana as Joris Vandermeer's primary advisor.",
+          "Option B: Hold the Vandermeer household without a primary advisor until Dana provides the assignment.",
+          "Option C: Set the household inactive pending advisor assignment."
         ],
-        "proposed_default": "No advisor assignment until Dana confirms",
-        "question_for_dana": "Which current primary advisor should be assigned to Joris Vandermeer?"
+        "proposed_default": "Option B: Hold the Vandermeer household without a primary advisor until Dana provides the assignment.",
+        "default_action": "hold_out",
+        "question_for_dana": "Which current roster advisor should be the primary advisor for Joris Vandermeer?",
+        "affected_entities": [
+          "Joris Vandermeer",
+          "Vandermeer",
+          "CU-6021"
+        ],
+        "account_facts": [
+          {
+            "account_id": "CU-6021",
+            "account_holder": "Joris Vandermeer",
+            "market_value_usd": 1620000,
+            "as_of_date": "2025-06-30"
+          }
+        ]
       }
     },
     "client:f60fdd79": {
@@ -389,9 +359,9 @@
     "client:511f8b2f": {
       "case_id": "client:511f8b2f",
       "action": "flag_for_clarification",
-      "confidence": 1.0,
+      "confidence": 0.99,
       "provenance_source": "slack_knowledge",
-      "evidence": "Louis Petit is a Legacy Harborline client, so status maps to ACTIVE and Harborline lineage is preserved. Marcus Webb appears only as Service Rep and cannot be used as primary advisor. CU-6020 maps exactly to Louis Petit with $540,000 USD.",
+      "evidence": "Exact CRM and custodian-holder match links Louis Petit and CU-6020 to Petit. Legacy maps to ACTIVE with lineage:harborline. The note says \"Never got a proper advisor of record assigned.\" Marcus Webb is listed only as Service Rep and cannot be promoted to advisor.",
       "resolved_household_name": "Petit",
       "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
@@ -400,88 +370,104 @@
       "resolved_interaction_type": null,
       "resolved_market_value_usd": 540000.0,
       "added_source_tags": [
-        "lineage:harborline"
+        "lineage:harborline",
+        "service_rep:Marcus Webb"
       ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify-advisor-client-511f8b2f",
-        "signal_ids": [
-          "client:511f8b2f"
-        ],
-        "category": "missing_primary_advisor",
-        "trigger": "Advisor is blank; Marcus Webb is only the Service Rep and cannot be promoted.",
-        "evidence": "Dana explicitly said Service Rep is not the relationship owner and missing Advisor fields must be flagged.",
+      "blocker": {
+        "blocker_id": "blocker:client:511f8b2f:advisor",
+        "case_id": "client:511f8b2f",
+        "matrix_rule": "F1",
+        "category": "Missing primary advisor",
+        "trigger": "Advisor field is blank; only Service Rep Marcus Webb is present.",
+        "evidence": "CRM note: \"Harborline book. Never got a proper advisor of record assigned.\" Dana said Service Rep is not the advisor and blank Advisor fields must be flagged.",
         "candidate_options": [
-          "ADV-001",
-          "ADV-002",
-          "ADV-003",
-          "ADV-004",
-          "ADV-005",
-          "ADV-006",
-          "ADV-007"
+          "Option A: Assign a current roster advisor chosen by Dana as Louis Petit's primary advisor.",
+          "Option B: Hold the Petit household without a primary advisor until Dana provides the assignment.",
+          "Option C: Set the household inactive pending advisor assignment."
         ],
-        "proposed_default": "No advisor assignment until Dana confirms",
-        "question_for_dana": "Which current primary advisor should be assigned to Louis Petit?"
+        "proposed_default": "Option B: Hold the Petit household without a primary advisor until Dana provides the assignment.",
+        "default_action": "hold_out",
+        "question_for_dana": "Which current roster advisor should be the primary advisor for Louis Petit?",
+        "affected_entities": [
+          "Louis Petit",
+          "Petit",
+          "CU-6020"
+        ],
+        "account_facts": [
+          {
+            "account_id": "CU-6020",
+            "account_holder": "Louis Petit",
+            "market_value_usd": 540000,
+            "as_of_date": "2025-06-30"
+          }
+        ]
       }
     },
     "client:504504a6": {
       "case_id": "client:504504a6",
       "action": "flag_for_clarification",
-      "confidence": 1.0,
+      "confidence": 0.99,
       "provenance_source": "slack_knowledge",
-      "evidence": "Maria Delgado is a Legacy Harborline client, mapping to ACTIVE with Harborline lineage. Marcus Webb is listed only as Service Rep and must not be used as primary advisor. The March 2025 meeting attendee A. Novak is a departed contractor and also cannot establish an advisor. CU-5004 maps to Maria Delgado with $1,240,000 USD; Cost_Basis is ignored.",
+      "evidence": "Maria Delgado exactly matches the Delgado household and CU-5004. Legacy maps to ACTIVE with lineage:harborline. The Advisor field is blank; Marcus Webb is only the Service Rep and cannot be used as primary advisor. The note says \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" CU-5004 is valued at $1,240,000 as of 2024-12-31, older than the latest custodian quarter-end 2025-06-30, so its valuation is also stale under F5.",
       "resolved_household_name": "Delgado",
       "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
       "resolved_client_role": "PRIMARY",
       "resolved_account_type": "INDIVIDUAL",
-      "resolved_interaction_type": null,
+      "resolved_interaction_type": "REVIEW",
       "resolved_market_value_usd": 1240000.0,
       "added_source_tags": [
         "lineage:harborline",
-        "departed_staff:A. Novak"
+        "service_rep:Marcus Webb",
+        "meeting_attendee:A. Novak",
+        "departed_staff:A. Novak",
+        "valuation_pending_review:2024-12-31"
       ],
-      "learned_rules": [
-        {
-          "rule_id": "ignored_field:Cost_Basis",
-          "rule_type": "ignored_field",
-          "scope": "firm_specific",
-          "source_value": "Cost_Basis",
-          "target_value": "not_used_for_AUM",
-          "extra_tags": [],
-          "provenance_source": "slack_knowledge",
-          "evidence": "Dana said AUM means market value and cost basis should be ignored.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": {
-        "id": "clarify-advisor-client-504504a6",
-        "signal_ids": [
-          "client:504504a6"
-        ],
-        "category": "missing_primary_advisor",
-        "trigger": "Advisor is blank; Service Rep Marcus Webb and meeting attendee A. Novak cannot establish the primary advisor.",
-        "evidence": "Dana said Service Rep is not the relationship owner, A. Novak is departed, and blank Advisor fields must be flagged.",
+      "learned_rules": [],
+      "blocker": {
+        "blocker_id": "blocker:client:504504a6:advisor-and-valuation",
+        "case_id": "client:504504a6",
+        "matrix_rule": "F1",
+        "category": "Missing primary advisor and stale valuation",
+        "trigger": "Advisor field is blank and only Service Rep Marcus Webb is present; the sole account valuation predates the latest custodian quarter-end.",
+        "evidence": "CRM note: \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" Account CU-5004 is dated 2024-12-31, while the current custodian feed includes 2025-06-30. The meeting attendee is A. Novak, whom Dana identified as a departed contractor; that attendee is not an advisor assignment.",
         "candidate_options": [
-          "ADV-001",
-          "ADV-002",
-          "ADV-003",
-          "ADV-004",
-          "ADV-005",
-          "ADV-006",
-          "ADV-007"
+          "Option A: Assign a current roster advisor chosen by Dana and retain the 2024-12-31 valuation pending a refreshed valuation decision.",
+          "Option B: Hold the Delgado household and CU-5004 out until Dana provides the advisor assignment and confirms how to handle the stale valuation.",
+          "Option C: Set the Delgado household inactive pending advisor reassignment and valuation review."
         ],
-        "proposed_default": "No advisor assignment until Dana confirms",
-        "question_for_dana": "Which current primary advisor should be assigned to Maria Delgado?"
+        "proposed_default": "Option B: Hold the Delgado household and CU-5004 out until Dana provides the advisor assignment and confirms how to handle the stale valuation.",
+        "default_action": "hold_out",
+        "question_for_dana": "Which current roster advisor should be primary for Maria Delgado, and should CU-5004's 2024-12-31 valuation be held pending a refreshed quarter-end value?",
+        "affected_entities": [
+          "Maria Delgado",
+          "Delgado",
+          "CU-5004",
+          "Review \u2014 Delgado"
+        ],
+        "account_facts": [
+          {
+            "account_id": "CU-5004",
+            "account_holder": "Maria Delgado",
+            "market_value_usd": 1240000,
+            "as_of_date": "2024-12-31"
+          },
+          {
+            "meeting": "Review \u2014 Delgado",
+            "client": "Maria Delgado",
+            "attendee": "A. Novak",
+            "date": "2025-03-20"
+          }
+        ]
       }
     },
     "client:32e22ca3": {
       "case_id": "client:32e22ca3",
       "action": "auto_apply",
-      "confidence": 1.0,
-      "provenance_source": "llm",
-      "evidence": "Mei Lin Tan exactly matches the CRM household and CU-6027. Sofia Marchetti maps to ADV-005; the account is Individual, Active, and worth $495,000 USD. The email-only preference is preserved as a business-meaningful source tag. Other records in the broad context are unrelated.",
+      "confidence": 0.99,
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian-holder match links Mei Lin Tan to Tan Household and CU-6027. Sofia Marchetti maps to ADV-005; status is Active and the account is Individual, USD, $495,000 as of 2025-06-30. The note is a meaningful contact preference and is preserved.",
       "resolved_household_name": "Tan Household",
       "resolved_advisor_id": "ADV-005",
       "resolved_status": "ACTIVE",
@@ -490,68 +476,57 @@
       "resolved_interaction_type": null,
       "resolved_market_value_usd": 495000.0,
       "added_source_tags": [
-        "contact_preference:email_only"
+        "contact_preference:email_only",
+        "note:Prefers to be contacted by email only."
       ],
-      "learned_rules": [
-        {
-          "rule_id": "account_holder_to_household:Mei Lin Tan",
-          "rule_type": "account_holder_to_household",
-          "scope": "firm_specific",
-          "source_value": "Mei Lin Tan",
-          "target_value": "Tan Household",
-          "extra_tags": [],
-          "provenance_source": "llm",
-          "evidence": "Exact CRM and custodian holder match links Mei Lin Tan to Tan Household.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": null
+      "learned_rules": [],
+      "blocker": null
     },
     "client:a2dd7e0b": {
       "case_id": "client:a2dd7e0b",
       "action": "flag_for_clarification",
       "confidence": 0.99,
-      "provenance_source": "assumption",
-      "evidence": "Omar Farouk has an explicit advisor, Sofia Marchetti (ADV-005), and CU-6035 is $1,660,000 USD. However, Active status conflicts with the Deceased tag. INACTIVE is the conservative default, but Dana must confirm the authoritative status.",
+      "provenance_source": "llm",
+      "evidence": "Omar Farouk, the Farouk Household, Sofia Marchetti/ADV-005, and CU-6035 match exactly. However, the CRM status is Active while the explicit tag is Deceased; Slack does not settle how this contradiction should be handled.",
       "resolved_household_name": "Farouk Household",
       "resolved_advisor_id": "ADV-005",
-      "resolved_status": "INACTIVE",
+      "resolved_status": null,
       "resolved_client_role": "PRIMARY",
       "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
       "resolved_market_value_usd": 1660000.0,
       "added_source_tags": [
-        "critical_tag:Deceased"
+        "deceased"
       ],
-      "learned_rules": [
-        {
-          "rule_id": "status_map:Active + Deceased",
-          "rule_type": "status_map",
-          "scope": "firm_specific",
-          "source_value": "Active + Deceased",
-          "target_value": "INACTIVE",
-          "extra_tags": [],
-          "provenance_source": "assumption",
-          "evidence": "Active status conflicts with a Deceased tag; INACTIVE is proposed conservatively pending Dana confirmation.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": {
-        "id": "clarify-status-client-a2dd7e0b",
-        "signal_ids": [
-          "client:a2dd7e0b"
-        ],
-        "category": "status_contradiction",
-        "trigger": "CRM Status is Active while the record carries a Deceased tag.",
-        "evidence": "The record contains an explicit contradiction between Active status and Deceased tag; INACTIVE is proposed conservatively pending Dana confirmation.",
+      "learned_rules": [],
+      "blocker": {
+        "blocker_id": "blocker:client:a2dd7e0b:status",
+        "case_id": "client:a2dd7e0b",
+        "matrix_rule": "F4",
+        "category": "Contradictory status information",
+        "trigger": "CRM Status is Active while the source tag is Deceased.",
+        "evidence": "The record has Status \"Active\" and Tags \"Deceased\". No Slack message addresses Omar Farouk or resolves this contradiction.",
         "candidate_options": [
-          "ACTIVE",
-          "INACTIVE"
+          "Option A: Mark Omar Farouk and the Farouk Household INACTIVE and exclude the $1,660,000 account from active AUM.",
+          "Option B: Retain Active status while Dana confirms whether the Deceased tag is erroneous or requires a household transition.",
+          "Option C: Hold the household and CU-6035 out of canonical output pending Dana's determination."
         ],
-        "proposed_default": "INACTIVE",
-        "question_for_dana": "Should Omar Farouk be marked INACTIVE because of the Deceased tag, or is the tag erroneous?"
+        "proposed_default": "Option A: Mark Omar Farouk and the Farouk Household INACTIVE and exclude the $1,660,000 account from active AUM.",
+        "default_action": "set_inactive",
+        "question_for_dana": "Should the Deceased tag take precedence and the Farouk Household be marked INACTIVE, or should Status remain Active?",
+        "affected_entities": [
+          "Omar Farouk",
+          "Farouk Household",
+          "CU-6035"
+        ],
+        "account_facts": [
+          {
+            "account_id": "CU-6035",
+            "account_holder": "Omar Farouk",
+            "market_value_usd": 1660000,
+            "as_of_date": "2025-06-30"
+          }
+        ]
       }
     },
     "client:4ab17f92": {
@@ -646,9 +621,9 @@
     "client:99068c0d": {
       "case_id": "client:99068c0d",
       "action": "auto_apply",
-      "confidence": 1.0,
-      "provenance_source": "llm",
-      "evidence": "Sophie Laurent exactly matches the CRM household and CU-6039. James Okafor maps to ADV-004; the account is Individual, Active, and worth $530,000 USD. The referral detail is preserved as a source tag.",
+      "confidence": 0.99,
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian-holder match links Sophie Laurent to Laurent Household and CU-6039. James Okafor maps to ADV-004; status is Active and the account is Individual, USD, $530,000 as of 2025-06-30. Preserve the referral note and Referred By field as business context.",
       "resolved_household_name": "Laurent Household",
       "resolved_advisor_id": "ADV-004",
       "resolved_status": "ACTIVE",
@@ -657,75 +632,69 @@
       "resolved_interaction_type": null,
       "resolved_market_value_usd": 530000.0,
       "added_source_tags": [
-        "referred_by:Emily Harrington"
+        "referral:existing_client",
+        "referred_by:Emily Harrington",
+        "note:Referred by an existing client."
       ],
-      "learned_rules": [
-        {
-          "rule_id": "account_holder_to_household:Sophie Laurent",
-          "rule_type": "account_holder_to_household",
-          "scope": "firm_specific",
-          "source_value": "Sophie Laurent",
-          "target_value": "Laurent Household",
-          "extra_tags": [],
-          "provenance_source": "llm",
-          "evidence": "Exact CRM and custodian holder match links Sophie Laurent to Laurent Household.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": null
+      "learned_rules": [],
+      "blocker": null
     },
     "client:b669d445": {
       "case_id": "client:b669d445",
       "action": "auto_apply",
-      "confidence": 1.0,
-      "provenance_source": "llm",
-      "evidence": "Wei Zhang exactly matches the CRM household and CU-6033. James Okafor maps to ADV-004; the account is Individual, Active, and worth $1,930,000 USD. The Do Not Contact restriction and quarterly review cadence are preserved as business-meaningful tags.",
+      "confidence": 0.99,
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian-holder match links Wei Zhang to Zhang Household and CU-6033. James Okafor maps to ADV-004; status is Active and the account is Individual, USD, $1,930,000 as of 2025-06-30. Preserve the quarterly review cadence and Do Not Contact instruction.",
       "resolved_household_name": "Zhang Household",
       "resolved_advisor_id": "ADV-004",
       "resolved_status": "ACTIVE",
       "resolved_client_role": "PRIMARY",
       "resolved_account_type": "INDIVIDUAL",
-      "resolved_interaction_type": null,
+      "resolved_interaction_type": "REVIEW",
       "resolved_market_value_usd": 1930000.0,
       "added_source_tags": [
-        "do_not_contact",
-        "review_cadence:quarterly"
+        "interaction_cadence:quarterly_review",
+        "contact_restriction:do_not_contact",
+        "note:Reviews the portfolio with the team each quarter."
       ],
-      "learned_rules": [
-        {
-          "rule_id": "account_holder_to_household:Wei Zhang",
-          "rule_type": "account_holder_to_household",
-          "scope": "firm_specific",
-          "source_value": "Wei Zhang",
-          "target_value": "Zhang Household",
-          "extra_tags": [],
-          "provenance_source": "llm",
-          "evidence": "Exact CRM and custodian holder match links Wei Zhang to Zhang Household.",
-          "version": 1,
-          "active": true
-        }
-      ],
-      "clarification": null
+      "learned_rules": [],
+      "blocker": null
     },
     "client:271b01a3": {
       "case_id": "client:271b01a3",
       "action": "auto_apply",
       "confidence": 0.99,
-      "provenance_source": "slack_knowledge",
-      "evidence": "CRM identifies Yusuf Al-Rashid as Active with Marcus Webb and household Al-Rashid. The note and custodian record identify the EUR account; Dana explicitly established USD reporting and quarter-end conversion for Al-Rashid.",
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM, custodian, and meeting match for Yusuf Al-Rashid. Advisor Marcus Webb is on the CRM record, the household is Al-Rashid, and the account is a 2025-06-30 EUR account. Preserve the source note that the client is based in Geneva and the account is held in euros; the assembler converts the market value to USD at quarter-end. Website and other empty fields have no canonical business meaning and are dropped.",
       "resolved_household_name": "Al-Rashid",
       "resolved_advisor_id": "ADV-002",
       "resolved_status": "ACTIVE",
-      "resolved_client_role": null,
-      "resolved_account_type": null,
-      "resolved_interaction_type": null,
+      "resolved_client_role": "PRIMARY",
+      "resolved_account_type": "INDIVIDUAL",
+      "resolved_interaction_type": "REVIEW",
       "resolved_market_value_usd": null,
       "added_source_tags": [
-        "currency:EUR"
+        "segment:High Net Worth",
+        "risk_profile:Conservative",
+        "fee_schedule:0.85%",
+        "currency:EUR",
+        "source_note:Based in Geneva; his account is held with a European custodian in euros."
       ],
-      "learned_rules": [],
-      "clarification": null
+      "learned_rules": [
+        {
+          "rule_id": "account_holder_to_household:Yusuf Al-Rashid",
+          "rule_type": "account_holder_to_household",
+          "scope": "firm_specific",
+          "source_value": "Yusuf Al-Rashid",
+          "target_value": "Al-Rashid",
+          "extra_tags": [],
+          "provenance_source": "llm",
+          "evidence": "Exact CRM client and custodian account-holder match.",
+          "version": 1,
+          "active": true
+        }
+      ],
+      "blocker": null
     },
     "account:CU-5001": {
       "case_id": "account:CU-5001",
@@ -792,31 +761,50 @@
       "action": "flag_for_clarification",
       "confidence": 0.99,
       "provenance_source": "slack_knowledge",
-      "evidence": "CU-5004 matches Maria Delgado in the Delgado household. Legacy maps to ACTIVE with Harborline lineage, but the CRM Advisor field is blank; Dana explicitly forbade using Service Rep as the primary advisor. The meeting also references departed contractor A. Novak.",
+      "evidence": "Maria Delgado is a Legacy client, which Slack maps to ACTIVE with Harborline lineage. Her CRM Advisor field is blank and the note says: \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" Marcus Webb appears only as Service Rep, and Slack explicitly says not to use Service Rep as advisor. The account valuation is also dated 2024-12-31, older than the 2025-06-30 quarter-end in the custodian feed.",
       "resolved_household_name": "Delgado",
       "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
-      "resolved_client_role": null,
-      "resolved_account_type": null,
+      "resolved_client_role": "PRIMARY",
+      "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 1240000.0,
+      "resolved_market_value_usd": null,
       "added_source_tags": [
-        "lineage:harborline"
+        "lineage:harborline",
+        "service_rep:Marcus Webb",
+        "pending:primary_advisor",
+        "valuation_as_of:2024-12-31"
       ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify:account:CU-5004:advisor",
-        "signal_ids": [
-          "account:CU-5004"
-        ],
-        "category": "missing_primary_advisor",
-        "trigger": "CRM Advisor is blank while Service Rep is Marcus Webb and a related meeting attendee is departed contractor A. Novak.",
-        "evidence": "Dana said Service Rep must not be treated as advisor and that records with blank Advisor fields must be flagged; A. Novak is a departed contractor requiring reassignment.",
+      "blocker": {
+        "blocker_id": "F1-CU-5004",
+        "case_id": "account:CU-5004",
+        "matrix_rule": "F1",
+        "category": "missing primary advisor",
+        "trigger": "The CRM Advisor field is blank; only Service Rep Marcus Webb is present, and the source note says the proper advisor of record is not assigned.",
+        "evidence": "CRM note: \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" Slack: \"Don't guess. Flag those to me\" when Advisor is blank.",
         "candidate_options": [
-          "Dana-designated advisor from the current roster"
+          "Option A: Assign a current roster advisor chosen by Dana as Maria Delgado's primary advisor and use the 2025-06-30 valuation when confirmed current.",
+          "Option B: Keep Maria Delgado's household unassigned and hold CU-5004 out of the canonical output pending Dana's advisor decision.",
+          "Option C: Treat Marcus Webb as the primary advisor, despite his being listed only as Service Rep."
         ],
-        "proposed_default": "Leave primary advisor unassigned pending Dana's designation; do not use Marcus Webb or A. Novak automatically.",
-        "question_for_dana": "Who is the primary advisor for Maria Delgado / the Delgado household?"
+        "proposed_default": "Option B",
+        "default_action": "hold_out",
+        "question_for_dana": "Which current roster advisor should own the Delgado household? Until confirmed, should CU-5004 remain held out because its primary advisor is missing and its last valuation is 2024-12-31?",
+        "affected_entities": [
+          "CU-5004",
+          "Maria Delgado",
+          "Delgado"
+        ],
+        "account_facts": [
+          {
+            "account_number": "CU-5004",
+            "market_value": 1240000,
+            "currency": "USD",
+            "as_of_date": "2024-12-31",
+            "account_holder": "Maria Delgado"
+          }
+        ]
       }
     },
     "account:CU-5005": {
@@ -954,30 +942,55 @@
       "action": "flag_for_clarification",
       "confidence": 0.99,
       "provenance_source": "llm",
-      "evidence": "Nakamura, Kenji matches Kenji Nakamura, whose CRM advisor is P. Raman (ADV-001). The CRM note and meeting explicitly say the family is still deciding whether the personal IRA belongs under the Nakamura LLC household or stands alone.",
+      "evidence": "The abbreviated custodian holder Nakamura, Kenji matches Kenji Nakamura. However, the CRM note says: \"Not sure whether we report the IRA under the LLC household or treat it as his own \u2014 flag for ops.\" The meeting note repeats: \"Family still deciding whether Kenji's IRA sits under the LLC or on its own.\" The LLC account itself resolves to Nakamura, but the IRA household treatment remains explicitly undecided.",
       "resolved_household_name": null,
-      "resolved_advisor_id": "ADV-001",
+      "resolved_advisor_id": null,
       "resolved_status": "ACTIVE",
-      "resolved_client_role": null,
+      "resolved_client_role": "PRIMARY",
       "resolved_account_type": "IRA",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 210000.0,
-      "added_source_tags": [],
+      "resolved_market_value_usd": null,
+      "added_source_tags": [
+        "pending:household_assignment"
+      ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify:account:CU-5011:household",
-        "signal_ids": [
-          "account:CU-5011"
-        ],
-        "category": "ambiguous_household_assignment",
-        "trigger": "Kenji Nakamura's personal IRA has two explicitly unresolved reporting destinations.",
-        "evidence": "The CRM note says the IRA may sit under the LLC household or be treated as Kenji's own, and the April 30 meeting repeats that the family is still deciding.",
+      "blocker": {
+        "blocker_id": "F7-CU-5011",
+        "case_id": "account:CU-5011",
+        "matrix_rule": "F7",
+        "category": "pending household treatment",
+        "trigger": "The CRM note and meeting note state that the family is still deciding whether Kenji's personal IRA belongs under the LLC household or on its own.",
+        "evidence": "CRM note: \"Not sure whether we report the IRA under the LLC household or treat it as his own \u2014 flag for ops.\" Meeting note: \"Family still deciding whether Kenji's IRA sits under the LLC or on its own.\"",
         "candidate_options": [
-          "Nakamura household / Nakamura Holdings LLC",
-          "Separate Kenji Nakamura household"
+          "Option A: Roll CU-5011 into the existing Nakamura household with Nakamura Holdings LLC.",
+          "Option B: Create or use a separate personal household for Kenji Nakamura and roll CU-5011 there.",
+          "Option C: Hold CU-5011 out of the canonical output until Dana confirms the reporting treatment."
         ],
-        "proposed_default": "Do not roll CU-5011 into a household until Dana confirms the reporting destination.",
-        "question_for_dana": "Should CU-5011 be reported under the Nakamura LLC household or under a separate Kenji Nakamura household?"
+        "proposed_default": "Option C",
+        "default_action": "hold_out",
+        "question_for_dana": "Should Kenji Nakamura's personal IRA, CU-5011, roll into the Nakamura LLC household or be reported in a separate personal household?",
+        "affected_entities": [
+          "CU-5011",
+          "Kenji Nakamura",
+          "Nakamura Holdings LLC",
+          "Nakamura"
+        ],
+        "account_facts": [
+          {
+            "account_number": "CU-5011",
+            "market_value": 210000,
+            "currency": "USD",
+            "as_of_date": "2025-06-30",
+            "account_holder": "Nakamura, Kenji"
+          },
+          {
+            "account_number": "CU-5006",
+            "market_value": 8900000,
+            "currency": "USD",
+            "as_of_date": "2025-06-30",
+            "account_holder": "Nakamura Holdings LLC"
+          }
+        ]
       }
     },
     "account:CU-5008": {
@@ -1017,46 +1030,68 @@
       "action": "auto_apply",
       "confidence": 0.99,
       "provenance_source": "slack_knowledge",
-      "evidence": "Thompson Joint maps to the Thompson household, whose CRM records are Bill and Sarah Thompson. Dana confirmed the household is inactive; the account's stale 2023-09-30 market value is retained as the available value and cost basis is ignored.",
+      "evidence": "Thompson is a Slack-confirmed departed household: Former and Churned map to INACTIVE, and the last account is being wound down. The existing confirmed holder mapping links Thompson Joint to the Thompson household. The stale 2023-09-30 valuation does not require a stale-valuation blocker because Slack explicitly settled Thompson's inactive treatment.",
       "resolved_household_name": "Thompson",
       "resolved_advisor_id": "ADV-004",
       "resolved_status": "INACTIVE",
-      "resolved_client_role": null,
-      "resolved_account_type": "OTHER",
-      "resolved_interaction_type": null,
+      "resolved_client_role": "OTHER",
+      "resolved_account_type": "JOINT",
+      "resolved_interaction_type": "REVIEW",
       "resolved_market_value_usd": 12400.0,
-      "added_source_tags": [],
+      "added_source_tags": [
+        "inactive_reason:departed_2023",
+        "account_holder:Thompson Joint",
+        "valuation_as_of:2023-09-30",
+        "excluded_from_active_aum"
+      ],
       "learned_rules": [],
-      "clarification": null
+      "blocker": null
     },
     "account:CU-5010": {
       "case_id": "account:CU-5010",
       "action": "flag_for_clarification",
       "confidence": 0.99,
-      "provenance_source": "llm",
-      "evidence": "CU-5010 is a USD individual account with $980,000 market value, but no matching CRM client, household, or interaction exists. Canonical rules prohibit orphan accounts.",
+      "provenance_source": "deterministic",
+      "evidence": "CU-5010 is a current USD account for Carlos Vasquez, but there are no CRM clients, household records, or meetings matching the holder. The account cannot be assigned to exactly one existing household without creating an unsupported link.",
       "resolved_household_name": null,
       "resolved_advisor_id": null,
       "resolved_status": null,
       "resolved_client_role": null,
-      "resolved_account_type": null,
+      "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 980000.0,
-      "added_source_tags": [],
+      "resolved_market_value_usd": null,
+      "added_source_tags": [
+        "pending:household_match"
+      ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify:account:CU-5010:household",
-        "signal_ids": [
-          "account:CU-5010"
-        ],
-        "category": "orphan_account",
-        "trigger": "Custodian account holder Carlos Vasquez has no CRM household match.",
-        "evidence": "No matching CRM clients, notes, or meetings were provided for Carlos Vasquez.",
+      "blocker": {
+        "blocker_id": "F2-CU-5010",
+        "case_id": "account:CU-5010",
+        "matrix_rule": "F2",
+        "category": "unmatched custodian account holder",
+        "trigger": "Carlos Vasquez has no matching CRM client or household in the supplied context.",
+        "evidence": "The supplied cross-source context contains no matching CRM clients, notes, or meetings for Carlos Vasquez.",
         "candidate_options": [
-          "Create or identify the correct CRM household for Carlos Vasquez"
+          "Option A: Provide the existing CRM household that owns CU-5010.",
+          "Option B: Confirm that Carlos Vasquez is a current client and identify the household and primary advisor from the current roster.",
+          "Option C: Hold CU-5010 out of the canonical output until an existing household match is confirmed."
         ],
-        "proposed_default": "Do not apply the account until a CRM household and primary advisor are confirmed.",
-        "question_for_dana": "Which existing or new CRM household and primary advisor should own CU-5010 for Carlos Vasquez?"
+        "proposed_default": "Option C",
+        "default_action": "hold_out",
+        "question_for_dana": "Which existing CRM household and current primary advisor should own CU-5010 for Carlos Vasquez?",
+        "affected_entities": [
+          "CU-5010",
+          "Carlos Vasquez"
+        ],
+        "account_facts": [
+          {
+            "account_number": "CU-5010",
+            "market_value": 980000,
+            "currency": "USD",
+            "as_of_date": "2025-06-30",
+            "account_holder": "Carlos Vasquez"
+          }
+        ]
       }
     },
     "account:CU-6010": {
@@ -1198,57 +1233,106 @@
     },
     "account:CU-6024": {
       "case_id": "account:CU-6024",
-      "action": "auto_apply",
+      "action": "flag_for_clarification",
       "confidence": 0.99,
-      "provenance_source": "llm",
-      "evidence": "CU-6024 exactly matches Oliver Ashford in the Ashford household with Grace Bennett as advisor. The stale as-of date does not prevent mapping; market value is retained as supplied in USD.",
+      "provenance_source": "slack_knowledge",
+      "evidence": "Oliver Ashford matches the active Ashford household and advisor Grace Bennett, but CU-6024 is valued as of 2024-09-30, older than the most recent quarter-end present in the custodian feed, 2025-06-30. Slack did not settle stale valuations for active households.",
       "resolved_household_name": "Ashford",
       "resolved_advisor_id": "ADV-007",
       "resolved_status": "ACTIVE",
-      "resolved_client_role": null,
+      "resolved_client_role": "PRIMARY",
       "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 1450000.0,
-      "added_source_tags": [],
+      "resolved_market_value_usd": null,
+      "added_source_tags": [
+        "valuation_as_of:2024-09-30",
+        "pending:valuation_refresh"
+      ],
       "learned_rules": [],
-      "clarification": null
+      "blocker": {
+        "blocker_id": "F5-CU-6024",
+        "case_id": "account:CU-6024",
+        "matrix_rule": "F5",
+        "category": "stale active-household valuation",
+        "trigger": "The active Ashford household's account valuation is dated 2024-09-30, older than the 2025-06-30 quarter-end in the custodian feed.",
+        "evidence": "Oliver Ashford is marked Active. CU-6024 has As_Of_Date 2024-09-30; the latest supplied custodian quarter-end is 2025-06-30.",
+        "candidate_options": [
+          "Option A: Confirm that the 2024-09-30 market value remains acceptable for canonical reporting.",
+          "Option B: Retain CU-6024 with its original date and tag it pending a refreshed valuation.",
+          "Option C: Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied."
+        ],
+        "proposed_default": "Option C",
+        "default_action": "hold_out",
+        "question_for_dana": "Should CU-6024 be held out of active AUM until a valuation at the 2025-06-30 quarter-end or later is available?",
+        "affected_entities": [
+          "CU-6024",
+          "Oliver Ashford",
+          "Ashford"
+        ],
+        "account_facts": [
+          {
+            "account_number": "CU-6024",
+            "market_value": 1450000,
+            "currency": "USD",
+            "as_of_date": "2024-09-30",
+            "account_holder": "Oliver Ashford"
+          }
+        ]
+      }
     },
     "account:CU-6025": {
       "case_id": "account:CU-6025",
       "action": "flag_for_clarification",
       "confidence": 0.99,
-      "provenance_source": "llm",
-      "evidence": "CU-6025 is a USD individual account with $670,000 market value, but no matching CRM client, household, or interaction exists. Canonical rules prohibit orphan accounts.",
+      "provenance_source": "deterministic",
+      "evidence": "CU-6025 is a current USD account for Priyanka Mehta, but there are no CRM clients, household records, or meetings matching the holder. The account cannot be rolled to exactly one household without an unsupported match.",
       "resolved_household_name": null,
       "resolved_advisor_id": null,
       "resolved_status": null,
       "resolved_client_role": null,
-      "resolved_account_type": null,
+      "resolved_account_type": "INDIVIDUAL",
       "resolved_interaction_type": null,
-      "resolved_market_value_usd": 670000.0,
-      "added_source_tags": [],
+      "resolved_market_value_usd": null,
+      "added_source_tags": [
+        "pending:household_match"
+      ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify:account:CU-6025:household",
-        "signal_ids": [
-          "account:CU-6025"
-        ],
-        "category": "orphan_account",
-        "trigger": "Custodian account holder Priyanka Mehta has no CRM household match.",
-        "evidence": "No matching CRM clients, notes, or meetings were provided for Priyanka Mehta.",
+      "blocker": {
+        "blocker_id": "F2-CU-6025",
+        "case_id": "account:CU-6025",
+        "matrix_rule": "F2",
+        "category": "unmatched custodian account holder",
+        "trigger": "Priyanka Mehta has no matching CRM client or household in the supplied context.",
+        "evidence": "The supplied cross-source context contains no matching CRM clients, notes, or meetings for Priyanka Mehta.",
         "candidate_options": [
-          "Create or identify the correct CRM household for Priyanka Mehta"
+          "Option A: Provide the existing CRM household that owns CU-6025.",
+          "Option B: Confirm that Priyanka Mehta is a current client and identify the household and primary advisor from the current roster.",
+          "Option C: Hold CU-6025 out of the canonical output until an existing household match is confirmed."
         ],
-        "proposed_default": "Do not apply the account until a CRM household and primary advisor are confirmed.",
-        "question_for_dana": "Which existing or new CRM household and primary advisor should own CU-6025 for Priyanka Mehta?"
+        "proposed_default": "Option C",
+        "default_action": "hold_out",
+        "question_for_dana": "Which existing CRM household and current primary advisor should own CU-6025 for Priyanka Mehta?",
+        "affected_entities": [
+          "CU-6025",
+          "Priyanka Mehta"
+        ],
+        "account_facts": [
+          {
+            "account_number": "CU-6025",
+            "market_value": 670000,
+            "currency": "USD",
+            "as_of_date": "2025-06-30",
+            "account_holder": "Priyanka Mehta"
+          }
+        ]
       }
     },
     "interaction:02076175": {
       "case_id": "interaction:02076175",
       "action": "flag_for_clarification",
       "confidence": 0.99,
-      "provenance_source": "llm",
-      "evidence": "The prospecting interaction is explicitly marked 'not in the CRM yet.' Canonical rules prohibit minting a household from an interaction, so Redwood Capital is an orphan interaction.",
+      "provenance_source": "deterministic",
+      "evidence": "The prospecting interaction note explicitly says: \"Referred lead \u2014 not in the CRM yet.\" No CRM household or custodian account matches Redwood Capital, so the interaction cannot be rolled to an existing household and no household may be created from the meeting.",
       "resolved_household_name": null,
       "resolved_advisor_id": null,
       "resolved_status": null,
@@ -1256,39 +1340,51 @@
       "resolved_account_type": null,
       "resolved_interaction_type": "PROSPECTING",
       "resolved_market_value_usd": null,
-      "added_source_tags": [],
+      "added_source_tags": [
+        "pending:household_match",
+        "source_note:Referred lead \u2014 not in the CRM yet."
+      ],
       "learned_rules": [],
-      "clarification": {
-        "id": "clarify:interaction:02076175:household",
-        "signal_ids": [
-          "interaction:02076175"
-        ],
-        "category": "orphan_interaction",
-        "trigger": "Redwood Capital is not present in the CRM.",
-        "evidence": "The meeting note says 'Referred lead \u2014 not in the CRM yet' and there are no matching CRM clients or accounts.",
+      "blocker": {
+        "blocker_id": "F3-02076175",
+        "case_id": "interaction:02076175",
+        "matrix_rule": "F3",
+        "category": "meeting client not in CRM",
+        "trigger": "The prospecting meeting names Redwood Capital, but no existing CRM household matches it.",
+        "evidence": "Meeting note: \"Referred lead \u2014 not in the CRM yet.\" There are no matching CRM clients or custodian accounts.",
         "candidate_options": [
-          "Create or identify the CRM prospect/household for Redwood Capital"
+          "Option A: Provide an existing CRM household to which Redwood Capital's prospecting interaction belongs.",
+          "Option B: Keep the interaction out of the canonical output until Redwood Capital is onboarded as an existing household.",
+          "Option C: Create a new household from the prospecting meeting."
         ],
-        "proposed_default": "Leave the interaction unapplied until Redwood Capital is added to or matched with the CRM.",
-        "question_for_dana": "Should Redwood Capital be added as a CRM prospect, and under which household/advisor should this interaction roll up?"
+        "proposed_default": "Option B",
+        "default_action": "hold_out",
+        "question_for_dana": "Does Redwood Capital correspond to an existing CRM household, or should this prospecting interaction remain outside the canonical output until the lead is onboarded?",
+        "affected_entities": [
+          "Intro Call \u2014 Redwood Capital",
+          "Redwood Capital"
+        ],
+        "account_facts": []
       }
     },
     "interaction:9ca85635": {
       "case_id": "interaction:9ca85635",
       "action": "auto_apply",
-      "confidence": 0.99,
+      "confidence": 0.98,
       "provenance_source": "llm",
-      "evidence": "Nora Lindholm matches the Lindholm Household, whose primary advisor is Priya Raman (ADV-001). The interaction is an existing onboarding meeting; the missing attendee does not prevent rollup to the existing household.",
+      "evidence": "The interaction client Nora Lindholm exactly matches the existing active Lindholm Household and its current primary advisor Priya Raman. A missing meeting attendee is not a canonical household-link blocker; the interaction can roll to the existing household without inventing an attendee.",
       "resolved_household_name": "Lindholm Household",
       "resolved_advisor_id": "ADV-001",
-      "resolved_status": null,
-      "resolved_client_role": null,
+      "resolved_status": "ACTIVE",
+      "resolved_client_role": "PRIMARY",
       "resolved_account_type": null,
       "resolved_interaction_type": "ONBOARDING",
       "resolved_market_value_usd": null,
-      "added_source_tags": [],
+      "added_source_tags": [
+        "attendee_missing"
+      ],
       "learned_rules": [],
-      "clarification": null
+      "blocker": null
     },
     "interaction:3e5f69e5": {
       "case_id": "interaction:3e5f69e5",
@@ -1443,168 +1539,126 @@
       "case_id": "interaction:0ec3b693",
       "action": "auto_apply",
       "confidence": 0.99,
-      "provenance_source": "llm",
-      "evidence": "The meeting client alias Thompson resolves to Bill Thompson in the existing Thompson household. The household is inactive per Dana's explicit instruction, and James Okafor is its advisor.",
+      "provenance_source": "slack_knowledge",
+      "evidence": "The existing confirmed meeting alias maps Thompson to Bill Thompson, and the Bill/Sarah records share the Thompson household. Slack confirms the household is inactive and should not count toward active AUM; the interaction can still be retained against that existing household. The meeting note is preserved as a business-meaningful operational note.",
       "resolved_household_name": "Thompson",
       "resolved_advisor_id": "ADV-004",
       "resolved_status": "INACTIVE",
-      "resolved_client_role": null,
+      "resolved_client_role": "PRIMARY",
       "resolved_account_type": null,
       "resolved_interaction_type": "REVIEW",
       "resolved_market_value_usd": null,
-      "added_source_tags": [],
-      "learned_rules": [
-        {
-          "rule_id": "meeting_client_alias:Thompson",
-          "rule_type": "meeting_client_alias",
-          "scope": "firm_specific",
-          "source_value": "Thompson",
-          "target_value": "Bill Thompson",
-          "extra_tags": [],
-          "provenance_source": "llm",
-          "evidence": "The interaction labeled Thompson matches the existing Review \u2014 Thompson record whose CRM client is Bill Thompson in the Thompson household.",
-          "version": 1,
-          "active": true
-        }
+      "added_source_tags": [
+        "source_note:Discussed winding down, but they asked about possibly re-engaging next year.",
+        "inactive_reason:departed_2023"
       ],
-      "clarification": null
+      "learned_rules": [],
+      "blocker": null
     }
   },
   "stage_4_clarifications": {
-    "markdown_message_to_dana": "# Round 2 onboarding clarifications\n\nThe following items were held or tagged conservatively where the source data did not support a definitive resolution. No advisor, household relationship, fee percentage, or status was inferred beyond the stated source information and the Round 1 guidance.",
+    "markdown_message_to_dana": "# Round 2 onboarding clarifications\n\nPlease answer the six items below. Proposed defaults are shown for confirmation.\n\n1. **Missing primary advisor \u2014 George Whitfield / Whitfield, CU-5005 (Pershing, $670,000, as of 2025-06-30); Joris Vandermeer / Vandermeer, CU-6021 (Pershing, $1,620,000, as of 2025-06-30); Louis Petit / Petit, CU-6020 (Schwab, $540,000, as of 2025-06-30); Maria Delgado / Delgado, CU-5004 (Schwab, $1,240,000, as of 2024-12-31); Review \u2014 Delgado.** George Whitfield has the departed Service Rep A. Novak noted; Joris Vandermeer has no Advisor or Service Rep; Louis Petit has Service Rep Marcus Webb; and Maria Delgado has Service Rep Marcus Webb, with the note: \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" Which current roster advisor chosen by Dana should be primary for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado? For CU-5004, should the 2024-12-31 valuation remain held pending a refreshed quarter-end value? **Options:** A. Assign current roster advisors chosen by Dana; for Maria Delgado, retain the 2024-12-31 valuation pending the refreshed-valuation decision. B. Hold the affected households without primary advisors; hold Maria Delgado and CU-5004 pending both decisions. C. Set the affected households inactive pending reassignment. **Proposed default: Option B.**\n\n2. **Contradictory status \u2014 Omar Farouk / Farouk Household, CU-6035 (Schwab, $1,660,000, as of 2025-06-30).** The CRM shows Status \"Active\" and Tags \"Deceased.\" Should the Deceased tag take precedence and the Farouk Household be marked INACTIVE, or should Status remain Active? **Options:** A. Mark Omar Farouk and the Farouk Household INACTIVE and exclude CU-6035 from active AUM. B. Retain Active status pending confirmation. C. Hold the household and CU-6035 out of reporting pending determination. **Proposed default: Option A.**\n\n3. **Pending household treatment \u2014 CU-5011 (Fidelity, $210,000, as of 2025-06-30), Kenji Nakamura, Nakamura Holdings LLC, Nakamura.** The CRM note says: \"Not sure whether we report the IRA under the LLC household or treat it as his own \u2014 flag for ops.\" The meeting note says: \"Family still deciding whether Kenji's IRA sits under the LLC or on its own.\" Should Kenji Nakamura's personal IRA, CU-5011, roll into the Nakamura Holdings LLC household or be reported in a separate personal household? **Options:** A. Roll CU-5011 into the existing Nakamura household with Nakamura Holdings LLC. B. Create or use a separate personal household for Kenji Nakamura. C. Hold CU-5011 out of reporting until the treatment is confirmed. **Proposed default: Option C.**\n\n4. **Unmatched custodian account holders \u2014 CU-5010 (Schwab, $980,000, as of 2025-06-30), Carlos Vasquez; and CU-6025 (Schwab, $670,000, as of 2025-06-30), Priyanka Mehta.** Which existing CRM household and current primary advisor should own CU-5010 for Carlos Vasquez and CU-6025 for Priyanka Mehta? **Options:** A. Provide the existing CRM household for each account. B. Confirm each person is a current client and identify the household and current primary advisor from the current roster. C. Hold CU-5010 and CU-6025 out of reporting until existing-household matches are confirmed. **Proposed default: Option C.**\n\n5. **Stale active-household valuation \u2014 CU-6024 (Fidelity, $1,450,000, as of 2024-09-30), Oliver Ashford / Ashford.** Oliver Ashford is marked Active, while the latest supplied custodian quarter-end is 2025-06-30. Should CU-6024 be held out of active AUM until a valuation at the 2025-06-30 quarter-end or later is available? **Options:** A. Confirm that the 2024-09-30 market value remains acceptable for reporting. B. Retain CU-6024 with its original date and tag it pending a refreshed valuation. C. Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied. **Proposed default: Option C.**\n\n6. **Meeting client not in CRM \u2014 Intro Call \u2014 Redwood Capital; Redwood Capital.** The meeting note says: \"Referred lead \u2014 not in the CRM yet.\" Does Redwood Capital correspond to an existing CRM household, or should this prospecting interaction remain outside reporting until the lead is onboarded? **Options:** A. Provide the existing CRM household to which the interaction belongs. B. Keep the interaction outside reporting until Redwood Capital is onboarded as an existing household. C. Create a new household from the prospecting meeting. **Proposed default: Option B.**",
     "items": [
       {
-        "id": "item_missing_primary_advisors",
-        "signal_ids": [
-          "sig_missing_advisor_hh_delgado",
-          "sig_missing_advisor_hh_petit",
-          "sig_missing_advisor_hh_vandermeer",
-          "sig_missing_advisor_hh_whitfield"
+        "id": "round2-group-1",
+        "blocker_ids": [
+          "blk_client_c4eea67c",
+          "blk_client_bc3491c1",
+          "blk_client_511f8b2f",
+          "blk_client_504504a6",
+          "blk_account_CU-5004"
         ],
-        "category": "Primary advisor assignment",
-        "trigger": "Four households have no primary advisor in the Advisor field. Service Rep values are not being treated as advisors, consistent with Round 1 guidance. Whitfield points to A. Novak, and Delgado has an interaction attended by A. Novak; Dana identified A. Novak as Anna Novak, a former contractor whose clients need reassignment.",
-        "evidence": "Delgado: Maria Delgado; Service Rep Marcus Webb; account CU-5004 at Schwab, $1,240,000, as of 2024-12-31. Petit: Louis Petit; Service Rep Marcus Webb; account CU-6020 at Schwab, $540,000, as of 2025-06-30. Vandermeer: Joris Vandermeer; no Service Rep; account CU-6021 at Pershing, $1,620,000, as of 2025-06-30. Whitfield: George Whitfield; Service Rep A. Novak; account CU-5005 at Pershing, $670,000, as of 2025-06-30. Source evidence for Whitfield says: \"Another **Harborline** client. Anna was looking after him before she left the firm \u2014 needs reassigning to someone current.\" The four households, their accounts, and related meetings were held out pending confirmation.",
+        "category": "Missing primary advisor",
+        "trigger": "Advisor is blank for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado; Service Rep A. Novak or Marcus Webb must not be treated as the primary advisor. Maria Delgado's CU-5004 also has a valuation older than the latest custodian quarter-end.",
+        "evidence": "George Whitfield / Whitfield / CU-5005: CRM note: \"Another Harborline client. Anna was looking after him before she left the firm \u2014 needs reassigning to someone current.\" Joris Vandermeer / Vandermeer / CU-6021: no Advisor and no Service Rep in the CRM record. Louis Petit / Petit / CU-6020: CRM note: \"Harborline book. Never got a proper advisor of record assigned.\" Maria Delgado / Delgado / CU-5004: CRM note: \"Marcus has been servicing the account but she doesn't really have a proper advisor of record assigned \u2014 should sort that out.\" The meeting attendee A. Novak was identified as a departed contractor and is not an advisor assignment. Account facts: CU-5005 is with Pershing at $670,000 as of 2025-06-30; CU-6021 is with Pershing at $1,620,000 as of 2025-06-30; CU-6020 is with Schwab at $540,000 as of 2025-06-30; CU-5004 is with Schwab at $1,240,000 as of 2024-12-31. Review \u2014 Delgado concerns the same Maria Delgado household and account treatment.",
         "candidate_options": [
-          "Option A \u2014 Dana assigns the current primary advisor for each household, including the replacement for any household still pointing to A. Novak; release the held households after confirmation.",
-          "Option B \u2014 Leave all four households unassigned and continue holding their accounts and related meetings out until advisor assignments are provided.",
-          "Option C \u2014 Use the listed Service Rep as the primary advisor temporarily."
+          "Option A: Assign current roster advisors chosen by Dana for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado; retain CU-5004's 2024-12-31 valuation pending a refreshed-valuation decision.",
+          "Option B: Hold the affected households without primary advisors; hold Maria Delgado and CU-5004 pending the advisor and valuation decisions.",
+          "Option C: Set the affected households inactive pending reassignment."
         ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and avoids guessing. Option C is not consistent with Dana\u2019s Round 1 instruction not to use Service Rep as a fallback.",
-        "question_for_dana": "Who is the current primary advisor for Delgado, Petit, Vandermeer, and Whitfield, and who should replace A. Novak where applicable?"
+        "proposed_default": "Option B: Hold the affected households without primary advisors; hold Maria Delgado and CU-5004 pending the advisor and valuation decisions.",
+        "question_for_dana": "Which current roster advisor chosen by Dana should be primary for George Whitfield, Joris Vandermeer, Louis Petit, and Maria Delgado? For CU-5004, should the 2024-12-31 valuation remain held pending a refreshed quarter-end value?"
       },
       {
-        "id": "item_deceased_status",
-        "signal_ids": [
-          "sig_deceased_status_hh_farouk"
+        "id": "round2-group-2",
+        "blocker_ids": [
+          "blk_client_a2dd7e0b"
         ],
-        "category": "Client status",
-        "trigger": "Farouk Household has conflicting status indicators: Omar Farouk is marked Active in the CRM and tagged Deceased.",
-        "evidence": "Account CU-6035 at Schwab has a market value of $1,660,000 as of 2025-06-30. The household was set inactive and tagged pending round-two review.",
+        "category": "Contradictory status",
+        "trigger": "CRM Status is Active while the source tag is Deceased.",
+        "evidence": "Omar Farouk / Farouk Household / CU-6035. The record has Status \"Active\" and Tags \"Deceased\". CU-6035 is with Schwab at $1,660,000 as of 2025-06-30. No Slack message addresses Omar Farouk or resolves this contradiction.",
         "candidate_options": [
-          "Option A \u2014 Confirm Omar Farouk\u2019s status and provide the appropriate household treatment before reactivating or retaining the current status.",
-          "Option B \u2014 Keep Farouk Household inactive pending confirmation.",
-          "Option C \u2014 Treat the Active CRM status as controlling and restore the household to active."
+          "Option A: Mark Omar Farouk and the Farouk Household INACTIVE and exclude CU-6035 from active AUM.",
+          "Option B: Retain Active status pending confirmation.",
+          "Option C: Hold the household and CU-6035 out of reporting pending determination."
         ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and does not override the conflicting Deceased tag without confirmation.",
-        "question_for_dana": "Please confirm whether Farouk Household should remain inactive and how the Deceased tag should be handled."
+        "proposed_default": "Option A: Mark Omar Farouk and the Farouk Household INACTIVE and exclude CU-6035 from active AUM.",
+        "question_for_dana": "Should the Deceased tag take precedence and the Farouk Household be marked INACTIVE, or should Status remain Active?"
       },
       {
-        "id": "item_unmatched_custodian_accounts",
-        "signal_ids": [
-          "sig_unmatched_account_CU-5011",
-          "sig_unmatched_account_CU-5010",
-          "sig_unmatched_account_CU-6025"
+        "id": "round2-group-3",
+        "blocker_ids": [
+          "blk_account_CU-5011"
         ],
-        "category": "Custodian account-to-household assignment",
-        "trigger": "Three custodian accounts do not have a confirmed household match.",
-        "evidence": "CU-5011 is Kenji Nakamura\u2019s Fidelity IRA with a market value of $210,000 as of 2025-06-30. The source notes say the family is deciding whether the IRA belongs under Nakamura Holdings LLC or is treated as Kenji\u2019s own. CU-5010 is Carlos Vasquez\u2019s Schwab Individual account with a market value of $980,000 as of 2025-06-30. CU-6025 is Priyanka Mehta\u2019s Schwab Individual account with a market value of $670,000 as of 2025-06-30. All three accounts were held out and not attached to a household; no household was created.",
+        "category": "Pending household treatment",
+        "trigger": "The CRM note and meeting note state that the family is still deciding whether Kenji's personal IRA belongs under the LLC household or on its own.",
+        "evidence": "CU-5011 / Kenji Nakamura / Nakamura Holdings LLC / Nakamura. CRM note: \"Not sure whether we report the IRA under the LLC household or treat it as his own \u2014 flag for ops.\" Meeting note: \"Family still deciding whether Kenji's IRA sits under the LLC or on its own.\" CU-5011 is with Fidelity at $210,000 as of 2025-06-30.",
         "candidate_options": [
-          "Option A \u2014 Dana confirms the correct household for each account; attach only after confirmation, with CU-5011 specifically resolved between Nakamura Holdings LLC and Kenji Nakamura\u2019s own household.",
-          "Option B \u2014 Continue holding all three accounts out of household reporting until their matches are confirmed.",
-          "Option C \u2014 Create or select households based on the account holder names."
+          "Option A: Roll CU-5011 into the existing Nakamura household with Nakamura Holdings LLC.",
+          "Option B: Create or use a separate personal household for Kenji Nakamura and roll CU-5011 there.",
+          "Option C: Hold CU-5011 out of reporting until Dana confirms the reporting treatment."
         ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and avoids creating unsupported household relationships.",
-        "question_for_dana": "Which household should receive CU-5011, CU-5010, and CU-6025?"
+        "proposed_default": "Option C: Hold CU-5011 out of reporting until Dana confirms the reporting treatment.",
+        "question_for_dana": "Should Kenji Nakamura's personal IRA, CU-5011, roll into the Nakamura Holdings LLC household or be reported in a separate personal household?"
       },
       {
-        "id": "item_fx_conversion",
-        "signal_ids": [
-          "sig_fx_CU-6022"
+        "id": "round2-group-4",
+        "blocker_ids": [
+          "blk_account_CU-5010",
+          "blk_account_CU-6025"
         ],
-        "category": "Currency conversion",
-        "trigger": "CU-6022 is reported in CHF and requires USD treatment for reporting.",
-        "evidence": "CU-6022 is Francesca Bianchi\u2019s account at Pictet. The original amount is 2,100,000 CHF. It was converted to $2,633,190 using 1.2539 USD per CHF, described as the ECB reference rate for the 2025-06-30 quarter-end. The rate provenance is recorded as an assumption pending confirmation.",
+        "category": "Unmatched custodian account holders",
+        "trigger": "Carlos Vasquez and Priyanka Mehta have no matching CRM client or household in the supplied context.",
+        "evidence": "CU-5010 / Carlos Vasquez: no matching CRM clients, notes, or meetings. CU-5010 is with Schwab at $980,000 as of 2025-06-30. CU-6025 / Priyanka Mehta: no matching CRM clients, notes, or meetings. CU-6025 is with Schwab at $670,000 as of 2025-06-30.",
         "candidate_options": [
-          "Option A \u2014 Confirm the 1.2539 ECB reference rate for the 2025-06-30 quarter-end and retain the USD amount of $2,633,190.",
-          "Option B \u2014 Keep the account at 2,100,000 CHF and exclude it from USD totals until the rate is confirmed.",
-          "Option C \u2014 Replace the stated rate with another quarter-end rate."
+          "Option A: Provide the existing CRM household that owns each account.",
+          "Option B: Confirm that Carlos Vasquez and Priyanka Mehta are current clients and identify each household and current primary advisor from the current roster.",
+          "Option C: Hold CU-5010 and CU-6025 out of reporting until existing-household matches are confirmed."
         ],
-        "proposed_default": "Option A \u2014 This retains the conversion already applied under the Round 1 instruction to report in USD, while making the rate confirmation explicit.",
-        "question_for_dana": "Please confirm whether the 1.2539 ECB reference rate for the 2025-06-30 quarter-end is acceptable for CU-6022."
+        "proposed_default": "Option C: Hold CU-5010 and CU-6025 out of reporting until existing-household matches are confirmed.",
+        "question_for_dana": "Which existing CRM household and current primary advisor should own CU-5010 for Carlos Vasquez and CU-6025 for Priyanka Mehta?"
       },
       {
-        "id": "item_stale_valuation",
-        "signal_ids": [
-          "sig_stale_CU-6024"
+        "id": "round2-group-5",
+        "blocker_ids": [
+          "blk_account_CU-6024"
         ],
-        "category": "Account valuation date",
-        "trigger": "CU-6024 has a balance dated before the current custodian feed cutoff.",
-        "evidence": "CU-6024 for Oliver Ashford is held at Fidelity with a market value of $1,450,000 as of 2024-09-30. The feed cutoff date is 2025-06-30. The account was retained at its last reported balance with its original as-of date and tagged pending stale-valuation review.",
+        "category": "Stale active-household valuation",
+        "trigger": "The active Ashford household's account valuation is dated 2024-09-30, older than the 2025-06-30 quarter-end in the custodian feed.",
+        "evidence": "Oliver Ashford / Ashford is marked Active. CU-6024 is with Fidelity at $1,450,000 as of 2024-09-30; the latest supplied custodian quarter-end is 2025-06-30.",
         "candidate_options": [
-          "Option A \u2014 Retain $1,450,000 with the 2024-09-30 as-of date and clearly flag it as stale until an updated custodian value is available.",
-          "Option B \u2014 Exclude CU-6024 from reporting until a current valuation is received.",
-          "Option C \u2014 Treat the 2024-09-30 balance as current through 2025-06-30."
+          "Option A: Confirm that the 2024-09-30 market value remains acceptable for reporting.",
+          "Option B: Retain CU-6024 with its original date and tag it pending a refreshed valuation.",
+          "Option C: Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied."
         ],
-        "proposed_default": "Option A \u2014 This matches the applied treatment and preserves the source date without presenting an outdated value as current.",
-        "question_for_dana": "Should CU-6024 remain included at $1,450,000 as of 2024-09-30 while an updated valuation is obtained?"
+        "proposed_default": "Option C: Hold CU-6024 out of active AUM until a 2025-06-30 or later valuation is supplied.",
+        "question_for_dana": "Should CU-6024 be held out of active AUM until a valuation at the 2025-06-30 quarter-end or later is available?"
       },
       {
-        "id": "item_orphan_interaction",
-        "signal_ids": [
-          "sig_orphan_interaction_02076175"
+        "id": "round2-group-6",
+        "blocker_ids": [
+          "blk_interaction_02076175"
         ],
-        "category": "Client interaction",
-        "trigger": "A meeting references a referred lead that is not present in the CRM.",
-        "evidence": "Meeting 02076175 for Redwood Capital occurred June 8, 2025, with James Okafor. The note states: \"Referred lead \u2014 not in the CRM yet.\" The meeting was held out and no household was created from it.",
+        "category": "Meeting client not in CRM",
+        "trigger": "The prospecting meeting names Redwood Capital, but no existing CRM household matches it.",
+        "evidence": "Intro Call \u2014 Redwood Capital / Redwood Capital. Meeting note: \"Referred lead \u2014 not in the CRM yet.\" There are no matching CRM clients or custodian accounts.",
         "candidate_options": [
-          "Option A \u2014 Create the Redwood Capital household and attach the meeting after the lead is added to the CRM and its household details are confirmed.",
-          "Option B \u2014 Continue holding the meeting out and do not create a household from it.",
-          "Option C \u2014 Attach the meeting to an existing household based only on the Redwood Capital label."
+          "Option A: Provide an existing CRM household to which Redwood Capital's prospecting interaction belongs.",
+          "Option B: Keep the interaction outside reporting until Redwood Capital is onboarded as an existing household.",
+          "Option C: Create a new household from the prospecting meeting."
         ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and avoids creating or attaching a household from an unconfirmed lead.",
-        "question_for_dana": "Should Redwood Capital be added to the CRM so meeting 02076175 can be associated, or should it remain outside the client reporting set?"
-      },
-      {
-        "id": "item_household_attribute_conflicts",
-        "signal_ids": [
-          "sig_household_attribute_conflicts"
-        ],
-        "category": "Household-level client attributes",
-        "trigger": "Four households have different client-level Risk Profile and/or Fee Schedule values, so a single household value would not be supported.",
-        "evidence": "Abramson: Daniel Abramson is Conservative and 0.85%; Rachel Abramson is Aggressive and 1.00%. Chen: Linda Chen is Moderate and 0.85%; Robert Chen is Conservative and 1.00%. Sullivan: Megan Sullivan is Moderate and 0.85%; Tom Sullivan is Aggressive and Tier 1. Thompson: Bill Thompson is Moderate and Tier 1; Sarah Thompson is Aggressive and 1.10%. Each client\u2019s value was preserved in source tags; no household-level value was created.",
-        "candidate_options": [
-          "Option A \u2014 Keep Risk Profile and Fee Schedule at the individual client level for these households until Dana confirms a household-level convention.",
-          "Option B \u2014 Continue with no household-level value and retain each client\u2019s stated value for reporting and review.",
-          "Option C \u2014 Select one client\u2019s value as the household value."
-        ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and avoids overriding one client\u2019s value or inventing a household-level value.",
-        "question_for_dana": "For Abramson, Chen, Sullivan, and Thompson, should these attributes remain client-specific, or is there an approved household-level treatment?"
-      },
-      {
-        "id": "item_nonstandard_fee_schedules",
-        "signal_ids": [
-          "sig_nonstandard_fee_schedules"
-        ],
-        "category": "Fee schedule interpretation",
-        "trigger": "Several clients have fee schedule entries that are not stated as standard percentage fees.",
-        "evidence": "Tier 1 applies to Ada Okonkwo, Bill Thompson, Camille Delacroix, Hiroshi Yamamoto, Joris Vandermeer, Linh Nguyen, Omar Farouk, Sophie Laurent, Tobias Kruger, and Tom Sullivan. \"0.85% \u2013 negotiated\" applies to Astrid Johansson. \"See LOE\" applies to Beatriz Gomes. Tier 2 applies to Hassan Karimi. These values were preserved verbatim as fee schedule tags; no fee percentage was inferred.",
-        "candidate_options": [
-          "Option A \u2014 Confirm the meaning and billing treatment for Tier 1, \"0.85% \u2013 negotiated,\" \"See LOE,\" and Tier 2, then update only where Dana provides the applicable interpretation.",
-          "Option B \u2014 Preserve all values verbatim as fee schedule tags and do not infer a percentage.",
-          "Option C \u2014 Map each nonstandard value to the nearest standard percentage schedule."
-        ],
-        "proposed_default": "Option B \u2014 This matches the applied treatment and avoids fabricating fee percentages or billing terms.",
-        "question_for_dana": "What billing treatment should be used for Tier 1, \"0.85% \u2013 negotiated,\" \"See LOE,\" and Tier 2?"
+        "proposed_default": "Option B: Keep the interaction outside reporting until Redwood Capital is onboarded as an existing household.",
+        "question_for_dana": "Does Redwood Capital correspond to an existing CRM household, or should this prospecting interaction remain outside reporting until the lead is onboarded?"
       }
     ]
   }

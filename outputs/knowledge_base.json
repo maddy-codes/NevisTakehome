@@ -285,20 +285,8 @@
       "source_value": "Francesca Bianchi",
       "target_value": "Bianchi",
       "extra_tags": [],
-      "provenance_source": "llm",
-      "evidence": "Exact CRM and custodian holder match links Francesca Bianchi to the Bianchi household.",
-      "version": 1,
-      "active": true
-    },
-    "status_map:Active + Deceased": {
-      "rule_id": "status_map:Active + Deceased",
-      "rule_type": "status_map",
-      "scope": "firm_specific",
-      "source_value": "Active + Deceased",
-      "target_value": "INACTIVE",
-      "extra_tags": [],
-      "provenance_source": "assumption",
-      "evidence": "Active status conflicts with a Deceased tag; INACTIVE is proposed conservatively pending Dana confirmation.",
+      "provenance_source": "deterministic",
+      "evidence": "Exact CRM and custodian holder match for Francesca Bianchi.",
       "version": 1,
       "active": true
     },
@@ -393,7 +381,7 @@
       "source_value": "Mei Lin Tan",
       "target_value": "Tan Household",
       "extra_tags": [],
-      "provenance_source": "llm",
+      "provenance_source": "deterministic",
       "evidence": "Exact CRM and custodian holder match links Mei Lin Tan to Tan Household.",
       "version": 1,
       "active": true
@@ -405,7 +393,7 @@
       "source_value": "Sophie Laurent",
       "target_value": "Laurent Household",
       "extra_tags": [],
-      "provenance_source": "llm",
+      "provenance_source": "deterministic",
       "evidence": "Exact CRM and custodian holder match links Sophie Laurent to Laurent Household.",
       "version": 1,
       "active": true
@@ -417,8 +405,20 @@
       "source_value": "Wei Zhang",
       "target_value": "Zhang Household",
       "extra_tags": [],
-      "provenance_source": "llm",
+      "provenance_source": "deterministic",
       "evidence": "Exact CRM and custodian holder match links Wei Zhang to Zhang Household.",
+      "version": 1,
+      "active": true
+    },
+    "account_holder_to_household:Omar Farouk": {
+      "rule_id": "account_holder_to_household:Omar Farouk",
+      "rule_type": "account_holder_to_household",
+      "scope": "firm_specific",
+      "source_value": "Omar Farouk",
+      "target_value": "Farouk Household",
+      "extra_tags": [],
+      "provenance_source": "llm",
+      "evidence": "Exact CRM and custodian-holder match links Omar Farouk to the Farouk Household.",
       "version": 1,
       "active": true
     }
