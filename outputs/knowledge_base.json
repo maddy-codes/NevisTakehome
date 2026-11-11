@@ -58,7 +58,7 @@
       "target_value": "1 CHF = 1.2539 USD",
       "extra_tags": [],
       "provenance_source": "assumption",
-      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to CU-6022; Dana did not explicitly discuss this CHF account.",
+      "evidence": "Applied the mandated 2025-06-30 quarter-end CHF/USD rate to Bianchi account CU-6022; Dana did not explicitly discuss this CHF account.",
       "version": 1,
       "active": true
     },
@@ -371,6 +371,42 @@
       "extra_tags": [],
       "provenance_source": "llm",
       "evidence": "The interaction labeled Thompson exactly matches the existing Review — Thompson record whose CRM client is Bill Thompson in the Thompson household.",
+      "version": 1,
+      "active": true
+    },
+    "account_holder_to_household:Joris Vandermeer": {
+      "rule_id": "account_holder_to_household:Joris Vandermeer",
+      "rule_type": "account_holder_to_household",
+      "scope": "firm_specific",
+      "source_value": "Joris Vandermeer",
+      "target_value": "Vandermeer",
+      "extra_tags": [],
+      "provenance_source": "llm",
+      "evidence": "Exact CRM client and custodian account-holder match.",
+      "version": 1,
+      "active": true
+    },
+    "account_holder_to_household:Mei Lin Tan": {
+      "rule_id": "account_holder_to_household:Mei Lin Tan",
+      "rule_type": "account_holder_to_household",
+      "scope": "firm_specific",
+      "source_value": "Mei Lin Tan",
+      "target_value": "Tan Household",
+      "extra_tags": [],
+      "provenance_source": "llm",
+      "evidence": "Exact CRM and custodian account-holder match.",
+      "version": 1,
+      "active": true
+    },
+    "account_holder_to_household:Sophie Laurent": {
+      "rule_id": "account_holder_to_household:Sophie Laurent",
+      "rule_type": "account_holder_to_household",
+      "scope": "firm_specific",
+      "source_value": "Sophie Laurent",
+      "target_value": "Laurent Household",
+      "extra_tags": [],
+      "provenance_source": "llm",
+      "evidence": "Exact CRM and custodian account-holder match.",
       "version": 1,
       "active": true
     }
